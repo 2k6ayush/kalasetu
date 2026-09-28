@@ -12,11 +12,20 @@ export default function UploadForm() {
   const [error, setError]           = useState('');
 
   // ── New artist quick-create state ──
-  const [showCreate, setShowCreate]     = useState(false);
-  const [newName, setNewName]           = useState('');
-  const [newBio, setNewBio]             = useState('');
-  const [newSocial, setNewSocial]       = useState('');
+  const [showCreate, setShowCreate]       = useState(false);
+  const [newName, setNewName]             = useState('');
+  const [newBio, setNewBio]               = useState('');
+  const [newSocial, setNewSocial]         = useState('');
   const [createdArtist, setCreatedArtist] = useState(null);
+
+  // ── Tag review & editing state ──
+  const [editMedium, setEditMedium]                       = useState('');
+  const [editTechnique, setEditTechnique]                 = useState('');
+  const [editCulturalInfluence, setEditCulturalInfluence] = useState('');
+  const [editMood, setEditMood]                           = useState('');
+  const [tagSaveLoading, setTagSaveLoading]               = useState(false);
+  const [tagSaveSuccess, setTagSaveSuccess]               = useState(false);
+  const [tagSaveError, setTagSaveError]                   = useState('');
 
   function handleFile(e) {
     const f = e.target.files[0];
@@ -47,6 +56,7 @@ export default function UploadForm() {
     e.preventDefault();
     setError('');
     setResult(null);
+    setTagSaveSuccess(false);
 
     if (!file) return setError('Please select an image');
     if (!artistId.trim()) return setError('Please enter an Artist ID or create a profile');
@@ -61,10 +71,48 @@ export default function UploadForm() {
       const res = await fetch(`${API}/api/artworks`, { method: 'POST', body: formData });
       const data = await res.json();
       setResult(data);
+
+      if (data.tags) {
+        setEditMedium(data.tags.medium || '');
+        setEditTechnique(data.tags.technique || '');
+        setEditCulturalInfluence(data.tags.culturalInfluence || '');
+        setEditMood(Array.isArray(data.tags.mood) ? data.tags.mood.join(', ') : '');
+      }
     } catch (err) {
       setError(err.message || 'Upload failed — please try again');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSaveTags() {
+    if (!result?.artwork?._id) return;
+    setTagSaveLoading(true);
+    setTagSaveSuccess(false);
+    setTagSaveError('');
+
+    try {
+      const res = await fetch(`${API}/api/artworks/${result.artwork._id}/tags`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          medium: editMedium,
+          technique: editTechnique,
+          culturalInfluence: editCulturalInfluence,
+          mood: editMood,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to update tags');
+      }
+
+      setTagSaveSuccess(true);
+    } catch (err) {
+      setTagSaveError(err.message || 'Failed to save tags');
+    } finally {
+      setTagSaveLoading(false);
     }
   }
 
@@ -136,22 +184,52 @@ export default function UploadForm() {
             <div className="alert alert-error">
               <strong>Content not approved.</strong> Reason: {result.reason}
             </div>
+          ) : result.moderation === 'pending' ? (
+            <div className="alert" style={{ background: 'rgba(234, 179, 8, 0.15)', borderColor: 'rgba(234, 179, 8, 0.4)', color: '#fef08a' }}>
+              ⏳ <strong>Submission Under Review:</strong> {result.reason || 'AI moderation service is temporarily unavailable. Your artwork has been saved as pending.'}
+            </div>
           ) : (
             <>
               <div className="alert alert-success">
                 ✓ Artwork uploaded and approved!
               </div>
+
               {result.tags && (
-                <div style={{ marginTop: 12 }}>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    AI-Generated Tags
+                <div style={{ marginTop: 20, padding: 20, background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                  <h3 style={{ fontSize: '1.05rem', marginBottom: 8, fontFamily: 'var(--font-display)' }}>
+                    Review & Refine Tags <span style={{ fontSize: '0.75rem', padding: '2px 8px', background: 'rgba(217, 119, 6, 0.2)', color: 'var(--accent-primary)', borderRadius: 'var(--radius-sm)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>AI-Suggested</span>
+                  </h3>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 16 }}>
+                    Review the AI-extracted metadata below. You can refine or edit any tag before confirming.
                   </p>
-                  <div className="tag-list">
-                    {result.tags.medium && <span className="tag">{result.tags.medium}</span>}
-                    {result.tags.technique && <span className="tag">{result.tags.technique}</span>}
-                    {result.tags.culturalInfluence && <span className="tag">{result.tags.culturalInfluence}</span>}
-                    {result.tags.mood?.map((m, i) => <span key={i} className="tag">{m}</span>)}
+
+                  <div className="form-group">
+                    <label htmlFor="edit-medium">Medium (AI-suggested)</label>
+                    <input id="edit-medium" value={editMedium} onChange={e => setEditMedium(e.target.value)} />
                   </div>
+
+                  <div className="form-group">
+                    <label htmlFor="edit-technique">Technique (AI-suggested)</label>
+                    <input id="edit-technique" value={editTechnique} onChange={e => setEditTechnique(e.target.value)} />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="edit-culture">Cultural Influence (AI-suggested)</label>
+                    <input id="edit-culture" value={editCulturalInfluence} onChange={e => setEditCulturalInfluence(e.target.value)} />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="edit-mood">Mood (AI-suggested, comma-separated)</label>
+                    <input id="edit-mood" value={editMood} onChange={e => setEditMood(e.target.value)} />
+                  </div>
+
+                  {tagSaveSuccess && <div className="alert alert-success" style={{ marginBottom: 12 }}>✓ Tags updated and confirmed!</div>}
+                  {tagSaveError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{tagSaveError}</div>}
+
+                  <button type="button" className="btn btn-primary" onClick={handleSaveTags} disabled={tagSaveLoading} id="save-tags-btn">
+                    {tagSaveLoading && <span className="spinner" />}
+                    {tagSaveLoading ? 'Saving Tags…' : 'Confirm & Save Tags'}
+                  </button>
                 </div>
               )}
             </>

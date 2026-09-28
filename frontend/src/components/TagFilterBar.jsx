@@ -4,17 +4,18 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 export default function TagFilterBar({ onFilter }) {
   const [options, setOptions] = useState({ mediums: [], techniques: [], cultures: [] });
-  const [filters, setFilters] = useState({ medium: '', technique: '', culture: '' });
+  const [filters, setFilters] = useState({ medium: '', technique: '', culture: '', search: '', shuffle: false });
 
   useEffect(() => {
-    // Fetch all artworks once to extract unique tag values
     fetch(`${API}/api/artworks`)
       .then(r => r.json())
       .then(artworks => {
-        const mediums    = [...new Set(artworks.map(a => a.tags?.medium).filter(Boolean))];
-        const techniques = [...new Set(artworks.map(a => a.tags?.technique).filter(Boolean))];
-        const cultures   = [...new Set(artworks.map(a => a.tags?.culturalInfluence).filter(Boolean))];
-        setOptions({ mediums, techniques, cultures });
+        if (Array.isArray(artworks)) {
+          const mediums    = [...new Set(artworks.map(a => a.tags?.medium).filter(Boolean))];
+          const techniques = [...new Set(artworks.map(a => a.tags?.technique).filter(Boolean))];
+          const cultures   = [...new Set(artworks.map(a => a.tags?.culturalInfluence).filter(Boolean))];
+          setOptions({ mediums, techniques, cultures });
+        }
       })
       .catch(() => {});
   }, []);
@@ -25,9 +26,24 @@ export default function TagFilterBar({ onFilter }) {
     onFilter(next);
   }
 
+  function toggleShuffle() {
+    const next = { ...filters, shuffle: !filters.shuffle };
+    setFilters(next);
+    onFilter(next);
+  }
+
   return (
-    <div className="filter-bar" id="tag-filter-bar">
-      <label>Filter by</label>
+    <div className="filter-bar" id="tag-filter-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+      <div style={{ flex: '1 1 200px', minWidth: 200 }}>
+        <input
+          type="text"
+          id="search-input"
+          value={filters.search}
+          onChange={e => handleChange('search', e.target.value)}
+          placeholder="🔍 Search title, tag, or artist…"
+          style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+        />
+      </div>
 
       <select
         id="filter-medium"
@@ -55,6 +71,17 @@ export default function TagFilterBar({ onFilter }) {
         <option value="">All Cultures</option>
         {options.cultures.map(c => <option key={c} value={c}>{c}</option>)}
       </select>
+
+      <button
+        type="button"
+        id="shuffle-btn"
+        className={`btn ${filters.shuffle ? 'btn-primary' : 'btn-secondary'}`}
+        onClick={toggleShuffle}
+        title="Shuffle feed to ensure equal shelf space"
+        style={{ padding: '8px 16px', cursor: 'pointer' }}
+      >
+        🎲 {filters.shuffle ? 'Shuffled' : 'Shuffle Order'}
+      </button>
     </div>
   );
 }

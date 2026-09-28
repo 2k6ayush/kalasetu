@@ -11,6 +11,12 @@ async function createSpotlight(req, res) {
     const artist = await Artist.findById(req.params.artistId);
     if (!artist) return res.status(404).json({ error: 'Artist not found' });
 
+    // Check if spotlight already exists for this artist
+    const existing = await Spotlight.findOne({ artistId: artist._id });
+    if (existing) {
+      return res.status(200).json(existing);
+    }
+
     // Gather their technique tags for context
     const artworks = await Artwork.find({
       artistId: artist._id,

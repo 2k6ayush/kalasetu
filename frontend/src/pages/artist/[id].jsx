@@ -1,5 +1,6 @@
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import Head from 'next/head';
 import Navbar from '@/components/Navbar';
 import ArtworkCard from '@/components/ArtworkCard';
@@ -9,8 +10,10 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 export default function ArtistProfile() {
   const router = useRouter();
   const { id } = router.query;
-  const [data, setData]     = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData]                 = useState(null);
+  const [loading, setLoading]             = useState(true);
+  const [generatingSpotlight, setGeneratingSpotlight] = useState(false);
+  const [spotlightError, setSpotlightError]           = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -19,6 +22,23 @@ export default function ArtistProfile() {
       .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
   }, [id]);
+
+  async function handleGenerateSpotlight() {
+    setSpotlightError('');
+    setGeneratingSpotlight(true);
+    try {
+      const res = await fetch(`${API}/api/spotlights/${id}`, { method: 'POST' });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to generate spotlight story.');
+      }
+      const spotlight = await res.json();
+      router.push(`/spotlight/${spotlight._id}`);
+    } catch (err) {
+      setSpotlightError(err.message || 'Spotlight generation failed.');
+      setGeneratingSpotlight(false);
+    }
+  }
 
   if (loading) return (
     <>
@@ -34,7 +54,7 @@ export default function ArtistProfile() {
     </>
   );
 
-  const { artist, artworks } = data;
+  const { artist, artworks, spotlight } = data;
   const initial = artist.name?.charAt(0)?.toUpperCase() || '?';
 
   return (
@@ -55,6 +75,31 @@ export default function ArtistProfile() {
                 {artist.socialLink}
               </a>
             )}
+
+            <div style={{ marginTop: 20 }}>
+              {spotlight ? (
+                <Link href={`/spotlight/${spotlight._id}`} className="btn btn-secondary">
+                  📖 Read Artist Spotlight
+                </Link>
+              ) : (
+                <>
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleGenerateSpotlight}
+                    disabled={generatingSpotlight}
+                    id="generate-spotlight-btn"
+                  >
+                    {generatingSpotlight && <span className="spinner" />}
+                    {generatingSpotlight ? 'Generating Editorial Story…' : '✨ Generate Artist Spotlight'}
+                  </button>
+                  {spotlightError && (
+                    <div className="alert alert-error" style={{ marginTop: 12 }}>
+                      {spotlightError}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
 

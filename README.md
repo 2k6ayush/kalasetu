@@ -1,155 +1,130 @@
 # Kalāsetu — Art Beyond Boundaries
 
-> A full-stack platform for independent artists and fading traditional crafts.  
-> Built for the "Beyond Reality" hackathon.
+> An AI-powered platform for independent artists and traditional crafts.  
+> Built for MLH HackDays (Track: "Art Beyond Boundaries") by Team Pair-a-Dox (Shrivathsa Bhat M & Ayush H).
+
+---
+
+## 🎨 Overview
+
+Kalāsetu bridges contemporary independent artists and endangered traditional craft practices. AI is treated strictly as an **intelligent curator and storyteller**, never a creator. 
+
+### Core Principles
+1. **Equal Shelf Space:** No likes, no followers, no engagement-based popularity ranking. Every artist gets equal visibility.
+2. **AI as Curator, Not Creator:** AI moderates submissions, extracts objective tags, authors editorial features, and structures craft guides—never generating artificial art.
+3. **Preserving Heritage:** Archiving fading traditional techniques through step-by-step guides documented directly by practitioners.
 
 ---
 
 ## ✨ Features
 
-- **Wall of Fame** — Browse artworks filtered by AI-generated tags (medium, technique, cultural influence). No popularity ranking, ever.
-- **Self-Upload** — Artists upload their own work. AI moderates content (flagging only 18+, violence, hate symbols, spam) and auto-generates discovery tags.
-- **Artist Spotlights** — Magazine-quality editorial features generated about artists on the platform.
-- **Craft Archive** — Preserving fading traditional techniques with AI-generated step-by-step breakdowns.
-- **Provider-Agnostic AI** — Tries Google Gemini first; if that fails for any reason, automatically falls back to xAI Grok. Transparent to callers, logged for debugging.
+- **Wall of Fame (Discover):** Browse artworks filtered by medium, technique, and cultural influence.
+- **Spotlight Blog (Tell):** Editorial-style stories generated for artists using Gemini Text.
+- **Heritage Craft Archive (Preserve):** Practitioner-submitted technique details transformed by Gemini into step-by-step guides.
+- **Provider-Agnostic AI Failover:** Primary integration with Google Gemini Vision & Text, with automatic fallback to xAI Grok.
 
 ---
 
 ## 🛠 Tech Stack
 
-| Layer      | Technology                                |
-|------------|-------------------------------------------|
-| Frontend   | Next.js (Pages Router), React, Vanilla CSS |
-| Backend    | Node.js, Express                          |
-| Database   | MongoDB (Mongoose) — in-memory fallback   |
-| AI         | Google Gemini API + xAI Grok API          |
-| Uploads    | Multer (local disk storage)               |
+| Layer | Technology | Description |
+| :--- | :--- | :--- |
+| **Frontend** | Next.js 16 (Pages Router), React 19 | Client-side rendering & pages structure |
+| **Styling** | Vanilla CSS | Custom dark theme with design tokens (`src/styles/globals.css`) |
+| **Backend** | Node.js, Express 4 | REST API server |
+| **Database & ORM** | MongoDB, Mongoose 8 | MongoDB Atlas (or automatic fallback to `mongodb-memory-server`) |
+| **Storage** | Multer | Local disk storage (`backend/uploads/`) |
+| **AI Integration** | `@google/genai` (Gemini), `openai` (Grok) | Gemini 3.8 Flash primary with Grok 4.7 fallback |
 
 ---
 
-## 📁 Project Structure
+## 🚀 Setup and Run Instructions
 
-```
-kalasetu/
-├── backend/
-│   ├── src/
-│   │   ├── config/db.js              # MongoDB connection (+ in-memory fallback)
-│   │   ├── models/                   # Artist, Artwork, Spotlight, CraftEntry
-│   │   ├── services/ai/
-│   │   │   ├── geminiProvider.js      # Raw Gemini API calls
-│   │   │   ├── grokProvider.js        # Raw Grok API calls
-│   │   │   └── index.js              # callAI() with auto-failover
-│   │   ├── middleware/upload.js       # Multer config
-│   │   ├── routes/                   # Express route modules
-│   │   ├── controllers/              # Business logic
-│   │   └── app.js                    # Express entry point
-│   ├── seed.js                       # Auto-seed on first startup
-│   ├── .env.example
-│   └── package.json
-├── frontend/
-│   └── src/
-│       ├── pages/                    # Next.js pages
-│       ├── components/               # React components
-│       └── styles/globals.css        # Design system
-├── seed/seedData.js                  # Standalone seed script
-└── README.md
+### 1. Prerequisites
+- Node.js (v18+ recommended)
+- npm
+
+### 2. Configuration
+Create a `.env` file in `backend/`:
+```bash
+cp backend/.env.example backend/.env
 ```
 
----
+Set environment variables in `backend/.env`:
+- `GEMINI_API_KEY`: Your Google Gemini API key
+- `GEMINI_MODEL`: (Optional, default: `gemini-3.8-flash`)
+- `GROK_API_KEY`: (Optional fallback)
+- `GROK_MODEL`: (Optional fallback, default: `grok-4.7`)
+- `MONGO_URI`: (Optional, leave blank to use automatic in-memory MongoDB)
+- `PORT`: (Optional, default: `5000`)
 
-## 🚀 Quick Start
-
-### 1. Clone & configure
+### 3. Install Dependencies & Run
 
 ```bash
-cd kalasetu/backend
-cp .env.example .env
-# Edit .env — add your API keys:
-#   GEMINI_API_KEY=your-key
-#   GROK_API_KEY=your-key
-# MONGO_URI is optional — leave blank for in-memory MongoDB
-```
-
-### 2. Install dependencies
-
-```bash
-# Backend
+# Terminal 1: Backend
 cd backend
 npm install
+npm run dev
 
-# Frontend
-cd ../frontend
-npm install
-```
-
-### 3. Run the app
-
-Open **two terminals**:
-
-```bash
-# Terminal 1 — Backend (auto-seeds demo data on first run)
-cd backend
-npm start          # or: npm run dev (with hot reload)
-
-# Terminal 2 — Frontend
+# Terminal 2: Frontend
 cd frontend
+npm install
 npm run dev
 ```
 
-### 4. Open in browser
-
-- **Frontend:** http://localhost:3000
+- **Frontend App:** http://localhost:3000
 - **Backend API:** http://localhost:5000
 
 ---
 
-## 🔑 Environment Variables
+## 📡 API Routes
 
-| Variable         | Required | Default            | Description                          |
-|------------------|----------|--------------------|--------------------------------------|
-| `MONGO_URI`      | No       | (in-memory)        | MongoDB connection string            |
-| `GEMINI_API_KEY`  | No*      | —                  | Google Gemini API key                |
-| `GEMINI_MODEL`    | No       | `gemini-3.8-flash` | Gemini model name                    |
-| `GROK_API_KEY`    | No*      | —                  | xAI Grok API key                     |
-| `GROK_MODEL`      | No       | `grok-4.7`         | Grok model name                      |
-| `PORT`           | No       | `5000`             | Backend server port                  |
-
-*At least one AI key is needed for upload moderation/tagging to work. Without keys, the app still runs — uploads are approved by default with empty tags.
-
----
-
-## 📡 API Endpoints
-
-| Method | Endpoint                  | Description                                    |
-|--------|---------------------------|------------------------------------------------|
-| POST   | `/api/artists`            | Create artist profile                          |
-| GET    | `/api/artists/:id`        | Get artist + their approved artworks            |
-| POST   | `/api/artworks`           | Upload → moderate → tag → save                 |
-| GET    | `/api/artworks?tag=x`     | Browse/filter by tags (no popularity sort)      |
-| POST   | `/api/spotlights/:artistId` | Generate editorial spotlight                 |
-| GET    | `/api/spotlights`         | List all spotlights                            |
-| GET    | `/api/spotlights/:id`     | Single spotlight                               |
-| POST   | `/api/crafts`             | Submit craft → generate steps → save            |
-| GET    | `/api/crafts`             | List all craft entries                         |
-| GET    | `/api/crafts/:id`         | Single craft entry                             |
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/artists` | Create an artist profile |
+| `GET` | `/api/artists/:id` | Get artist profile & approved artworks |
+| `POST` | `/api/artworks` | Upload artwork image, run moderation & tagging |
+| `GET` | `/api/artworks` | List & filter approved artworks by tags |
+| `POST` | `/api/spotlights/:artistId` | Generate editorial spotlight using Gemini |
+| `GET` | `/api/spotlights` | List all spotlights |
+| `GET` | `/api/spotlights/:id` | Get single spotlight |
+| `POST` | `/api/crafts` | Submit craft & generate step breakdown |
+| `GET` | `/api/crafts` | List all craft archive entries |
+| `GET` | `/api/crafts/:id` | Get single craft guide |
 
 ---
 
-## 🎨 Design Principles
+## ⚠️ Known Issues
 
-1. **No popularity ranking** — Discovery is by tags only, never by likes or engagement.
-2. **Self-uploaded art only** — All seed data is fictional. No scraped content.
-3. **Scoped moderation** — Content moderation checks only: 18+, violence, hate symbols, spam. Never claims to detect "AI vs. human" art.
-4. **Transparent AI failover** — Gemini → Grok, logged but invisible to callers.
-
----
-
-## 🧪 Demo Data
-
-The app auto-seeds 8 fictional artists, 10 artworks, 3 spotlights, and 2 craft entries on first startup (when the database is empty). All content is original placeholder text — nothing from real artists.
+- **Moderation Fails Open:** If both AI providers fail, artwork is auto-approved by default.
+- **No Auth or Rate Limiting:** AI endpoints lack rate limiting and user authentication.
+- **Ordering Limitation:** Newest-first sorting does not strictly enforce equal shelf space over time.
+- **No Tag Review Step:** AI tags are applied directly to artwork without pre-publication artist review.
+- **Non-persistent Local Storage:** In-memory MongoDB fallback and local disk uploads lose data on server restart.
+- **No Text Search:** Wall of Fame filtering relies only on dropdown tag matches, lacking free-text search.
+- **Model Verification:** `GEMINI_MODEL` (`gemini-3.8-flash`) and `GROK_MODEL` (`grok-4.7`) env defaults need live API verification.
 
 ---
 
-## License
+## 📁 Repository Structure
 
-MIT
+```
+kalasetu/
+├── backend/                  # Node.js / Express REST API
+│   ├── src/
+│   │   ├── config/           # Database configuration
+│   │   ├── controllers/      # Route logic for artworks, crafts, spotlights
+│   │   ├── middleware/       # Multer file upload setup
+│   │   ├── models/           # Mongoose schemas (Artist, Artwork, CraftEntry, Spotlight)
+│   │   ├── routes/           # Express API endpoints
+│   │   └── services/ai/      # Gemini & Grok AI providers + failover dispatcher
+│   └── seed.js               # Database seeding logic
+├── frontend/                 # Next.js frontend application
+│   └── src/
+│       ├── components/       # Reusable UI components (Navbar, Cards, Filters, Upload)
+│       ├── pages/            # Next.js pages router (Wall of Fame, Profile, Spotlights, Crafts)
+│       └── styles/           # CSS design system
+├── seed/                     # Seed data definitions
+├── README.md                 # Project README
+└── PROJECT_STATUS.md         # Full project & AI handoff documentation
+```

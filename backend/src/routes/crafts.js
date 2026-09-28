@@ -1,8 +1,11 @@
 const router = require('express').Router();
 const { createCraft, listCrafts, getCraft } = require('../controllers/craftController');
 
+const { aiRateLimiter } = require('../middleware/rateLimiter');
+const { validateCraftInput } = require('../middleware/validate');
+
 // POST /api/crafts — submit + generate breakdown
-router.post('/', createCraft);
+router.post('/', aiRateLimiter, validateCraftInput, createCraft);
 
 // GET /api/crafts — list all
 router.get('/', listCrafts);

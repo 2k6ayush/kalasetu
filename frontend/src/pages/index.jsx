@@ -16,10 +16,12 @@ export default function Home() {
     if (filters.medium)    params.set('medium', filters.medium);
     if (filters.technique) params.set('technique', filters.technique);
     if (filters.culture)   params.set('culture', filters.culture);
+    if (filters.search)    params.set('search', filters.search);
+    if (filters.shuffle)   params.set('shuffle', 'true');
 
     fetch(`${API}/api/artworks?${params}`)
       .then(r => r.json())
-      .then(data => { setArtworks(data); setLoading(false); })
+      .then(data => { setArtworks(Array.isArray(data) ? data : []); setLoading(false); })
       .catch(() => setLoading(false));
   }
 
@@ -44,8 +46,8 @@ export default function Home() {
           <div className="empty-state"><span className="spinner" /></div>
         ) : artworks.length === 0 ? (
           <div className="empty-state">
-            <h3>No artworks yet</h3>
-            <p>Be the first to <a href="/upload">upload</a> your art!</p>
+            <h3>No artworks found</h3>
+            <p>Try clearing filters or be the first to <a href="/upload">upload</a> your art!</p>
           </div>
         ) : (
           <div className="artwork-grid">

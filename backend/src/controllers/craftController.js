@@ -6,7 +6,7 @@ const { generateCraftBreakdown } = require('../services/ai');
  */
 async function createCraft(req, res) {
   try {
-    const { practitionerName, craftName, description, images } = req.body;
+    const { practitionerName, craftName, region, description, images } = req.body;
     if (!practitionerName || !craftName || !description) {
       return res.status(400).json({ error: 'practitionerName, craftName, and description are required' });
     }
@@ -19,6 +19,7 @@ async function createCraft(req, res) {
     const craft = await CraftEntry.create({
       practitionerName,
       craftName,
+      region: region || '',
       description,
       images: images || [],
       steps,

@@ -10,6 +10,7 @@ export default function Navbar() {
           <li><Link href="/upload">Upload</Link></li>
           <li><Link href="/spotlight">Spotlights</Link></li>
           <li><Link href="/crafts">Craft Archive</Link></li>
+          <li><Link href="/crafts/new">Submit Craft</Link></li>
         </ul>
       </div>
     </nav>

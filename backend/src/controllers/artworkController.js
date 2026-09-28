@@ -20,15 +20,33 @@ async function createArtwork(req, res) {
 
     // ── Step 1: Content moderation ──
     let modResult, modProvider;
+    let modFailed = false;
     try {
       const mod = await moderateContent(imageBase64, artistNote);
       modResult = mod.result;
       modProvider = mod.provider;
     } catch (aiErr) {
-      // If AI moderation fails entirely, let the artwork through with a note
       console.warn('[Artwork] AI moderation unavailable:', aiErr.message);
-      modResult = { safe: true, reason: 'Moderation service unavailable — approved by default' };
+      modFailed = true;
+      modResult = { safe: false, reason: 'AI moderation service unavailable — submission placed under review.' };
       modProvider = 'none';
+    }
+
+    if (modFailed) {
+      // AI failed — mark as pending (not approved)
+      const artwork = await Artwork.create({
+        artistId,
+        imagePath,
+        artistNote: artistNote || '',
+        moderationStatus: 'pending',
+        moderationReason: modResult.reason,
+        aiProvider: modProvider,
+      });
+      return res.status(200).json({
+        moderation: 'pending',
+        reason: modResult.reason,
+        artwork,
+      });
     }
 
     if (!modResult.safe) {
@@ -108,10 +126,44 @@ async function listArtworks(req, res) {
       ];
     }
 
-    // Sort by newest — NO popularity/engagement sort
-    const artworks = await Artwork.find(filter)
+    if (req.query.search && req.query.search.trim()) {
+      const searchRegex = new RegExp(req.query.search.trim(), 'i');
+      const matchingArtists = await Artist.find({ name: searchRegex }).select('_id');
+      const artistIds = matchingArtists.map(a => a._id);
+
+      const searchConditions = [
+        { artistNote: searchRegex },
+        { 'tags.medium': searchRegex },
+        { 'tags.technique': searchRegex },
+        { 'tags.culturalInfluence': searchRegex },
+        { 'tags.mood': searchRegex },
+      ];
+      if (artistIds.length > 0) {
+        searchConditions.push({ artistId: { $in: artistIds } });
+      }
+
+      if (filter.$or) {
+        filter.$and = [
+          { $or: filter.$or },
+          { $or: searchConditions },
+        ];
+        delete filter.$or;
+      } else {
+        filter.$or = searchConditions;
+      }
+    }
+
+    let artworks = await Artwork.find(filter)
       .populate('artistId', 'name')
       .sort({ createdAt: -1 });
+
+    if (req.query.shuffle === 'true') {
+      // Fisher-Yates shuffle for equal shelf space (NO popularity rank)
+      for (let i = artworks.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [artworks[i], artworks[j]] = [artworks[j], artworks[i]];
+      }
+    }
 
     return res.json(artworks);
   } catch (err) {
@@ -119,4 +171,27 @@ async function listArtworks(req, res) {
   }
 }
 
-module.exports = { createArtwork, listArtworks };
+/**
+ * PATCH /api/artworks/:id/tags — update artwork tags after artist review
+ */
+async function updateArtworkTags(req, res) {
+  try {
+    const { medium, technique, culturalInfluence, mood } = req.body;
+    const artwork = await Artwork.findById(req.params.id);
+    if (!artwork) return res.status(404).json({ error: 'Artwork not found' });
+
+    artwork.tags = {
+      medium: medium !== undefined ? medium : artwork.tags.medium,
+      technique: technique !== undefined ? technique : artwork.tags.technique,
+      culturalInfluence: culturalInfluence !== undefined ? culturalInfluence : artwork.tags.culturalInfluence,
+      mood: Array.isArray(mood) ? mood : (typeof mood === 'string' ? mood.split(',').map(s => s.trim()).filter(Boolean) : artwork.tags.mood),
+    };
+
+    await artwork.save();
+    return res.json(artwork);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+module.exports = { createArtwork, listArtworks, updateArtworkTags };

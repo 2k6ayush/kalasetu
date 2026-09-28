@@ -10,7 +10,7 @@ const artworkSchema = new mongoose.Schema({
     culturalInfluence: { type: String, default: '' },
     mood:              { type: [String], default: [] },
   },
-  moderationStatus: { type: String, enum: ['approved', 'rejected'], default: 'approved' },
+  moderationStatus: { type: String, enum: ['approved', 'rejected', 'pending'], default: 'pending' },
   moderationReason: { type: String, default: '' },
   aiProvider:       { type: String, default: '' },
   createdAt:        { type: Date, default: Date.now },

@@ -109,10 +109,23 @@ async function seed() {
     { artist: 7, note: 'Layered garden — collage with botanical prints', tags: { medium: 'Mixed Media Collage', technique: 'Paper Layering', culturalInfluence: 'Latin American Contemporary', mood: ['Dreamlike', 'Organic'] }},
   ];
 
+  const artworkImages = [
+    'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1606744824163-985d376605aa?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1584727638096-042c45049ebe?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&auto=format&fit=crop',
+  ];
+
   const artworks = await Artwork.insertMany(
-    artworksData.map(a => ({
+    artworksData.map((a, index) => ({
       artistId: artists[a.artist]._id,
-      imagePath: `/api/placeholder/${300 + Math.floor(Math.random() * 100)}/${200 + Math.floor(Math.random() * 100)}`,
+      imagePath: artworkImages[index],
       artistNote: a.note,
       tags: a.tags,
       moderationStatus: 'approved',

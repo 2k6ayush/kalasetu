@@ -27,6 +27,11 @@ export default function CraftsList() {
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <h1 className="page-title">Craft Archive</h1>
           <p className="page-subtitle">Preserving traditional techniques — step-by-step breakdowns of fading crafts.</p>
+          <div style={{ marginTop: 20 }}>
+            <Link href="/crafts/new" className="btn btn-primary">
+              + Submit a Craft Technique
+            </Link>
+          </div>
         </div>
 
         {loading ? (
