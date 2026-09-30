@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const artworkSchema = new mongoose.Schema({
-  artistId:         { type: mongoose.Schema.Types.ObjectId, ref: 'Artist', required: true },
+  artist:         { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   type:             { type: String, enum: ['IMAGE', 'VIDEO', 'AUDIO', 'TEXT'], default: 'IMAGE' },
   title:            { type: String, default: '' },
   imagePath:        { type: String, default: '' }, // acts as mediaUrl for video/audio too
@@ -15,6 +15,7 @@ const artworkSchema = new mongoose.Schema({
   moderationStatus: { type: String, enum: ['approved', 'rejected', 'pending'], default: 'pending' },
   moderationReason: { type: String, default: '' },
   aiProvider:       { type: String, default: '' },
+  visibility:       { type: String, enum: ['public', 'private'], default: 'public' },
   createdAt:        { type: Date, default: Date.now },
 });
 

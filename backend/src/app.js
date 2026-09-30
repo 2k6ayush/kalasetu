@@ -17,6 +17,7 @@ app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // ── Routes ─────────────────────────────────────────────
+app.use('/api/auth',             require('./routes/auth'));
 app.use('/api/artists',          require('./routes/artists'));
 app.use('/api/artworks',         require('./routes/artworks'));
 app.use('/api/spotlights',       require('./routes/spotlights'));

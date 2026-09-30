@@ -9,9 +9,11 @@ const { verifyGatekeeper } = require('../services/ai/moderationService');
  */
 async function createArtwork(req, res) {
   try {
-    const { artistId, artistNote, title, type = 'IMAGE' } = req.body;
+    const { artistNote, title, type = 'IMAGE' } = req.body;
     if (type !== 'TEXT' && !req.file) return res.status(400).json({ error: 'Media file is required' });
-    if (!artistId) return res.status(400).json({ error: 'artistId is required' });
+    
+    // artist is now retrieved from the JWT token
+    const artist = req.user._id;
 
     let imagePath = '';
     let absPath = '';
@@ -64,7 +66,7 @@ async function createArtwork(req, res) {
     }
 
     const artwork = await Artwork.create({
-      artistId,
+      artist,
       type,
       title: title || '',
       imagePath,
@@ -92,7 +94,7 @@ async function createArtwork(req, res) {
  */
 async function listArtworks(req, res) {
   try {
-    const filter = { moderationStatus: 'approved' };
+    const filter = { moderationStatus: 'approved', visibility: 'public' };
 
     if (req.query.medium)    filter['tags.medium']            = new RegExp(req.query.medium, 'i');
     if (req.query.technique) filter['tags.technique']         = new RegExp(req.query.technique, 'i');
@@ -121,7 +123,7 @@ async function listArtworks(req, res) {
         { 'tags.mood': searchRegex },
       ];
       if (artistIds.length > 0) {
-        searchConditions.push({ artistId: { $in: artistIds } });
+        searchConditions.push({ artist: { $in: artistIds } });
       }
 
       if (filter.$or) {
@@ -136,7 +138,7 @@ async function listArtworks(req, res) {
     }
 
     let artworks = await Artwork.find(filter)
-      .populate('artistId', 'name')
+      .populate('artist', 'name handle')
       .sort({ createdAt: -1 });
 
     if (req.query.shuffle === 'true') {
@@ -161,6 +163,7 @@ async function updateArtworkTags(req, res) {
     const { medium, technique, culturalInfluence, mood } = req.body;
     const artwork = await Artwork.findById(req.params.id);
     if (!artwork) return res.status(404).json({ error: 'Artwork not found' });
+    if (artwork.artist.toString() !== req.user._id.toString()) return res.status(403).json({ error: 'Forbidden' });
 
     artwork.tags = {
       medium: medium !== undefined ? medium : artwork.tags.medium,
@@ -176,4 +179,62 @@ async function updateArtworkTags(req, res) {
   }
 }
 
-module.exports = { createArtwork, listArtworks, updateArtworkTags };
+/**
+ * PATCH /api/artworks/:id/visibility
+ */
+async function updateVisibility(req, res) {
+  try {
+    const { visibility } = req.body;
+    if (!['public', 'private'].includes(visibility)) {
+      return res.status(400).json({ error: 'Invalid visibility status' });
+    }
+    const artwork = await Artwork.findById(req.params.id);
+    if (!artwork) return res.status(404).json({ error: 'Artwork not found' });
+    if (artwork.artist.toString() !== req.user._id.toString()) return res.status(403).json({ error: 'Forbidden' });
+
+    artwork.visibility = visibility;
+    await artwork.save();
+    return res.json(artwork);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+/**
+ * DELETE /api/artworks/:id
+ */
+async function deleteArtwork(req, res) {
+  try {
+    const artwork = await Artwork.findById(req.params.id);
+    if (!artwork) return res.status(404).json({ error: 'Artwork not found' });
+    if (artwork.artist.toString() !== req.user._id.toString()) return res.status(403).json({ error: 'Forbidden' });
+
+    if (artwork.imagePath) {
+      const filename = artwork.imagePath.split('/').pop();
+      const absPath = path.join(__dirname, '..', '..', 'uploads', filename);
+      if (fs.existsSync(absPath)) {
+        fs.unlinkSync(absPath);
+      }
+    }
+
+    await Artwork.findByIdAndDelete(req.params.id);
+    return res.json({ message: 'Artwork deleted successfully' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+/**
+ * GET /api/artworks/me
+ */
+async function listUserArtworks(req, res) {
+  try {
+    const artworks = await Artwork.find({ artist: req.user._id })
+      .sort({ createdAt: -1 });
+    return res.json(artworks);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+module.exports = { createArtwork, listArtworks, updateArtworkTags, updateVisibility, deleteArtwork, listUserArtworks };

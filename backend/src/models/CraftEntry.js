@@ -8,6 +8,7 @@ const craftEntrySchema = new mongoose.Schema({
   images:           { type: [String], default: [] },
   steps:            { type: [String], default: [] },
   aiProvider:       { type: String, default: '' },
+  visibility:       { type: String, enum: ['public', 'private'], default: 'public' },
   publishedAt:      { type: Date, default: Date.now },
 });
 

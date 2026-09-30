@@ -26,25 +26,25 @@ async function callGrok({ systemPrompt, userContent, imageBase64 }) {
     baseURL: 'https://api.groq.com/openai/v1',
   });
 
-  const userParts = [];
-
-  // Add text content
-  userParts.push({ type: 'text', text: userContent });
-
-  // Add image if provided (Groq's vision models support base64 images)
+  let finalUserContent;
   if (imageBase64) {
     const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-    userParts.push({
-      type: 'image_url',
-      image_url: { url: `data:image/jpeg;base64,${cleanBase64}` },
-    });
+    finalUserContent = [
+      { type: 'text', text: userContent },
+      {
+        type: 'image_url',
+        image_url: { url: `data:image/jpeg;base64,${cleanBase64}` },
+      }
+    ];
+  } else {
+    finalUserContent = userContent;
   }
 
   const completion = await client.chat.completions.create({
     model: GROK_MODEL,
     messages: [
       { role: 'system', content: systemPrompt },
-      { role: 'user', content: userParts },
+      { role: 'user', content: finalUserContent },
     ],
     temperature: 0.4,
   });

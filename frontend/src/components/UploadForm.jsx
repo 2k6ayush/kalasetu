@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { API } from '@/lib/api';
 import Link from 'next/link';
+import { AuthContext } from '@/context/AuthContext';
 
 export default function UploadForm() {
+  const { user } = useContext(AuthContext) || {};
   const [artistId, setArtistId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -33,11 +35,12 @@ export default function UploadForm() {
   const [tagSaveSuccess, setTagSaveSuccess] = useState(false);
   const [tagSaveError, setTagSaveError] = useState('');
 
-  // Auto-login if artistId exists in localStorage
+  // Auto-login from AuthContext
   useEffect(() => {
-    const saved = localStorage.getItem('kalasetu_artist_id');
-    if (saved) setArtistId(saved);
-  }, []);
+    if (user && (user._id || user.id)) {
+      setArtistId(user._id || user.id);
+    }
+  }, [user]);
 
   function handleProfilePhoto(e) {
     const f = e.target.files[0];
@@ -107,7 +110,12 @@ export default function UploadForm() {
       if (artistNote) formData.append('artistNote', artistNote);
       if (mediaFile) formData.append('image', mediaFile); // Multer expects field name 'image'
 
-      const res = await fetch(`${API}/api/artworks`, { method: 'POST', body: formData });
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API}/api/artworks`, { 
+        method: 'POST', 
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData 
+      });
       const data = await res.json();
       
       if (!res.ok) throw new Error(data.error || 'Upload failed');
@@ -142,9 +150,13 @@ export default function UploadForm() {
     setTagSaveError('');
 
     try {
+      const token = localStorage.getItem('token');
       const res = await fetch(`${API}/api/artworks/${result.artwork._id}/tags`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
         body: JSON.stringify({
           medium: editMedium,
           technique: editTechnique,
