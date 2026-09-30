@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const Artwork = require('../models/Artwork');
 const Artist = require('../models/Artist');
-const { moderateContent, tagArtwork } = require('../services/ai');
-
+const { tagArtwork } = require('../services/ai');
+const { verifyGatekeeper } = require('../services/ai/moderationService');
 /**
  * POST /api/artworks — upload image → moderate → if safe, tag → save
  */
@@ -19,57 +19,27 @@ async function createArtwork(req, res) {
     const absPath = path.join(__dirname, '..', '..', 'uploads', req.file.filename);
     const imageBase64 = fs.readFileSync(absPath, { encoding: 'base64' });
 
-    // ── Step 1: Content moderation ──
-    let modResult, modProvider;
-    let modFailed = false;
+    // ── Single Gatekeeper Verification ──
     try {
-      const mod = await moderateContent(imageBase64, artistNote);
-      modResult = mod.result;
-      modProvider = mod.provider;
+      const gatekeeper = await verifyGatekeeper({ imageBase64, textContent: artistNote });
+      if (!gatekeeper.approved) {
+        // Cleanup temp file
+        if (fs.existsSync(absPath)) fs.unlinkSync(absPath);
+        return res.status(200).json({
+          moderation: 'rejected',
+          reason: gatekeeper.reason
+        });
+      }
     } catch (aiErr) {
-      console.warn('[Artwork] AI moderation unavailable:', aiErr.message);
-      modFailed = true;
-      modResult = { safe: false, reason: 'AI moderation service unavailable — submission placed under review.' };
-      modProvider = 'none';
-    }
-
-    if (modFailed) {
-      // AI failed — mark as pending (not approved)
-      const artwork = await Artwork.create({
-        artistId,
-        imagePath,
-        artistNote: artistNote || '',
-        moderationStatus: 'pending',
-        moderationReason: modResult.reason,
-        aiProvider: modProvider,
-      });
-      return res.status(200).json({
-        moderation: 'pending',
-        reason: modResult.reason,
-        artwork,
-      });
-    }
-
-    if (!modResult.safe) {
-      // Rejected — save record but mark as rejected
-      const artwork = await Artwork.create({
-        artistId,
-        imagePath,
-        artistNote: artistNote || '',
-        moderationStatus: 'rejected',
-        moderationReason: modResult.reason,
-        aiProvider: modProvider,
-      });
-      return res.status(200).json({
-        moderation: 'rejected',
-        reason: modResult.reason,
-        artwork,
-      });
+      console.error('[Gatekeeper] Verification failed:', aiErr.message);
+      // Cleanup temp file and fail-closed
+      if (fs.existsSync(absPath)) fs.unlinkSync(absPath);
+      return res.status(503).json({ error: 'AI Verification Service Unavailable' });
     }
 
     // ── Step 2: Auto-tag ──
     let tags = { medium: '', technique: '', culturalInfluence: '', mood: [] };
-    let tagProvider = modProvider;
+    let tagProvider = 'unknown';
     try {
       const tagRes = await tagArtwork(imageBase64);
       tagProvider = tagRes.provider;
@@ -90,7 +60,7 @@ async function createArtwork(req, res) {
       artistNote: artistNote || '',
       tags,
       moderationStatus: 'approved',
-      moderationReason: modResult.reason || 'Approved',
+      moderationReason: 'Approved',
       aiProvider: tagProvider,
     });
 

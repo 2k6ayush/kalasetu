@@ -5,10 +5,27 @@ const Artwork = require('../models/Artwork');
 const Spotlight = require('../models/Spotlight');
 
 const { validateArtistInput } = require('../middleware/validate');
+const { verifyGatekeeper } = require('../services/ai/moderationService');
 
 // POST /api/artists — create artist profile
 router.post('/', validateArtistInput, async (req, res) => {
   try {
+    const { name, bio, socialLink } = req.body;
+    
+    // ── Single Gatekeeper Verification ──
+    const textContent = `Name: ${name}\nBio: ${bio || 'none'}\nSocial: ${socialLink || 'none'}`;
+    let gatekeeper;
+    try {
+      gatekeeper = await verifyGatekeeper({ textContent });
+    } catch (aiErr) {
+      console.error('[Gatekeeper] Verification failed:', aiErr.message);
+      return res.status(503).json({ error: 'AI Verification Service Unavailable' });
+    }
+
+    if (!gatekeeper.approved) {
+      return res.status(400).json({ error: `Content rejected: ${gatekeeper.reason}` });
+    }
+
     const artist = await Artist.create(req.body);
     res.status(201).json(artist);
   } catch (err) {
