@@ -8,7 +8,7 @@ export default function Navbar() {
         <ul className="navbar-links">
           <li><Link href="/">Gallery</Link></li>
           <li><Link href="/upload">Upload</Link></li>
-          <li><Link href="/spotlight">Spotlights</Link></li>
+          <li><Link href="/spotlight">India Blog</Link></li>
           <li><Link href="/crafts">Craft Archive</Link></li>
           <li><Link href="/crafts/new">Submit Craft</Link></li>
         </ul>

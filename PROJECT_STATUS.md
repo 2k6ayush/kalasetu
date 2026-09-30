@@ -32,6 +32,7 @@ Kalāsetu is an AI-curated platform empowering independent artists and preservin
 - `Artist` (`backend/src/models/Artist.js`): `name`, `bio`, `socialLink`, `createdAt`.
 - `Artwork` (`backend/src/models/Artwork.js`): `artistId`, `imagePath`, `artistNote`, `tags` (`medium`, `technique`, `culturalInfluence`, `mood`), `moderationStatus`, `moderationReason`, `aiProvider`, `createdAt`.
 - `Spotlight` (`backend/src/models/Spotlight.js`): `artistId`, `title`, `body`, `aiProvider`, `publishedAt`.
+- `IndiaSpotlight` (`backend/src/models/IndiaSpotlight.js`): `title`, `body`, `artType`, `state`, `imageUrl`, `imageCredit`, `aiProvider`, `publishedAt`.
 - `CraftEntry` (`backend/src/models/CraftEntry.js`): `practitionerName`, `craftName`, `description`, `images`, `steps`, `aiProvider`, `publishedAt`.
 
 ### API Routes
@@ -42,6 +43,11 @@ Kalāsetu is an AI-curated platform empowering independent artists and preservin
 - `POST /api/spotlights/:artistId`: Generate and save an editorial spotlight story for an artist using Gemini Text.
 - `GET /api/spotlights`: List all spotlights.
 - `GET /api/spotlights/:id`: Retrieve single spotlight article.
+- `GET /api/india-spotlights`: List automated India culture blogs (supports `?state=` & `?artType=` filters).
+- `GET /api/india-spotlights/:id`: Retrieve single India culture blog.
+- `GET /api/india-spotlights/meta`: Fetch available states and art types for UI filtering.
+- `POST /api/india-spotlights/generate`: Internally trigger the generation of a new automated India blog.
+- `POST /api/india-spotlights/backfill-images`: Retroactively fetch Wikimedia images for existing posts.
 - `POST /api/crafts`: Submit craft description & generate step-by-step preservation guide.
 - `GET /api/crafts`: List all craft archive entries.
 - `GET /api/crafts/:id`: Retrieve single craft guide.
@@ -59,6 +65,8 @@ Kalāsetu is an AI-curated platform empowering independent artists and preservin
 | **Explore / Search by Tags** | Done | Dropdown filtering without popularity ranking ([TagFilterBar.jsx](file:///d:/CODE%20SPACE%20-%20ALL%20PROJECTS/kalasetu/frontend/src/components/TagFilterBar.jsx), [artworkController.js](file:///d:/CODE%20SPACE%20-%20ALL%20PROJECTS/kalasetu/backend/src/controllers/artworkController.js)). |
 | **Artist Profile Page** | Done | Artist details & portfolio grid ([artist/[id].jsx](file:///d:/CODE%20SPACE%20-%20ALL%20PROJECTS/kalasetu/frontend/src/pages/artist/%5Bid%5D.jsx)). |
 | **Spotlight Blog Generation & Page** | Done | Generate spotlight button on profile page with duplicate check & redirect to story ([id].jsx](file:///d:/CODE%20SPACE%20-%20ALL%20PROJECTS/kalasetu/frontend/src/pages/artist/%5Bid%5D.jsx), [spotlightController.js](file:///d:/CODE%20SPACE%20-%20ALL%20PROJECTS/kalasetu/backend/src/controllers/spotlightController.js)). |
+| **Live India Culture Blog** | Done | Background scheduler generates a new post every 2 mins on a random Indian art form. UI features live 🔴 polling, real-time tags, and relative timestamps ([indiaSpotlightScheduler.js](file:///d:/CODE%20SPACE%20-%20ALL%20PROJECTS/kalasetu/backend/src/services/indiaSpotlightScheduler.js), [spotlight/index.jsx](file:///d:/CODE%20SPACE%20-%20ALL%20PROJECTS/kalasetu/frontend/src/pages/spotlight/index.jsx)). |
+| **Keyless Image Sourcing** | Done | Wikimedia Commons API integration fetches high-quality, royalty-free cultural photos for every new automated blog without requiring an API key ([imageSearchService.js](file:///d:/CODE%20SPACE%20-%20ALL%20PROJECTS/kalasetu/backend/src/services/imageSearchService.js)). |
 | **Craft Archive Submission & Guide** | Done | Form at `/crafts/new` generates AI step breakdown & redirects to guide ([new.jsx](file:///d:/CODE%20SPACE%20-%20ALL%20PROJECTS/kalasetu/frontend/src/pages/crafts/new.jsx), [craftController.js](file:///d:/CODE%20SPACE%20-%20ALL%20PROJECTS/kalasetu/backend/src/controllers/craftController.js)). |
 | **Seed / Demo Data** | Done | Auto-seeds 8 artists, 10 artworks, 3 spotlights, 2 craft entries on empty DB launch ([backend/seed.js](file:///d:/CODE%20SPACE%20-%20ALL%20PROJECTS/kalasetu/backend/seed.js)). |
 | **Error / Loading / Responsive UI** | Done | Dark theme tokens, spinners, responsive grids ([globals.css](file:///d:/CODE%20SPACE%20-%20ALL%20PROJECTS/kalasetu/frontend/src/styles/globals.css)). |
@@ -106,6 +114,7 @@ All seed images comply strictly with the project core principle (AI curates, nev
 6. **Artist Tag Governance:** Implemented post-upload tag review stage where artists review and refine AI-suggested metadata before finalizing publication.
 7. **Fair Discovery & Equal Shelf Space:** Added free-text search across titles, notes, tags, and artist names, combined with an optional Fisher-Yates random shuffle toggle to eliminate positional bias.
 8. **Strict CC0 Seed Imagery:** Replaced empty seed image paths with verified CC0 / Public Domain human art images, maintaining the fundamental rule that AI only curates and never generates art.
+9. **Wikimedia Commons Over Commercial APIs:** Pivoted from Pexels/Pixabay to the free Wikimedia Commons API for automated blog images. This guarantees developers can run the full image-enriched app locally without registering for third-party API keys or hitting strict rate limits.
 
 ---
 
@@ -128,7 +137,8 @@ All seed images comply strictly with the project core principle (AI curates, nev
 ---
 
 ## 11. Change Log
-- **2026-09-30** | Full audit pass: verified all 6 reported issues; Tasks 1 (Artist import), 3 (seed consolidation), 4 (API lib centralization) already resolved. Created `backend/.env` from `.env.example`. Confirmed model IDs `gemini-3.8-flash` and `grok-4.7` are valid per live API docs. Ran full 8-point E2E smoke test — all checks PASSED (homepage, tag filter, search, shuffle, artist profile, spotlight, craft archive, upload form). | `PROJECT_STATUS.md`, `backend/.env` | Senior Full-Stack Engineer
+- **2026-09-30** | Implemented live India Culture Auto-Blog. Created `IndiaSpotlight` model, scheduled background task (1 post / 2 min), built live UI with dynamic polling & filtering, and integrated keyless Wikimedia Commons image fetching | `indiaSpotlightController.js`, `imageSearchService.js`, `spotlight/index.jsx` | Senior Full-Stack Engineer
+- **2026-09-30** | Full audit pass: verified all 6 reported issues; Tasks 1 (Artist import), 3 (seed consolidation), 4 (API lib centralization) already resolved. Created `backend/.env` from `.env.example`. Confirmed model IDs `gemini-3.8-flash` and `grok-4.7` are valid per live API docs. Ran full 8-point E2E smoke test — all checks PASSED. | `PROJECT_STATUS.md`, `backend/.env` | Senior Full-Stack Engineer
 - **2026-09-29** | Replaced empty seed artwork images with authentic CC0 / Public Domain images and logged sources/licenses | `seed.js`, `seedData.js`, `PROJECT_STATUS.md` | Senior Full-Stack Engineer
 - **2026-09-29** | Added free-text search (title, tags, artist name) and Fisher-Yates feed shuffle toggle on Wall of Fame | `artworkController.js`, `TagFilterBar.jsx`, `index.jsx` | Senior Full-Stack Engineer
 - **2026-09-29** | Added `express-rate-limit` on AI POST routes and strict input validation middleware for length limits & required fields | `package.json`, `rateLimiter.js`, `validate.js`, Express route files | Senior Full-Stack Engineer
