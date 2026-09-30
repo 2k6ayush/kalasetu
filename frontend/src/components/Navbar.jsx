@@ -99,6 +99,7 @@ export default function Navbar() {
         <div className="category-pills">
           <Link href="/" className="pill active">Gallery</Link>
           <Link href="/spotlight" className="pill">India Blog</Link>
+          <Link href="/explore-india" className="pill">Explore India</Link>
           <Link href="/crafts" className="pill">Craft Archive</Link>
         </div>
       </div>

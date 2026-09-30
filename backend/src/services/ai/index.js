@@ -20,8 +20,8 @@ const { callGrok }   = require('./grokProvider');
  * @param {string} [opts.imageBase64]
  * @returns {Promise<{result: any, provider: string}>}
  */
-async function callAI({ task, systemPrompt, userContent, imageBase64 }) {
-  const payload = { systemPrompt, userContent, imageBase64 };
+async function callAI({ task, systemPrompt, userContent, imageBase64, responseSchema }) {
+  const payload = { systemPrompt, userContent, imageBase64, responseSchema };
 
   // ── Try Gemini first ──
   try {
@@ -30,7 +30,9 @@ async function callAI({ task, systemPrompt, userContent, imageBase64 }) {
     console.log(`[AI] ✓ ${task} served by gemini`);
     return { result, provider: 'gemini' };
   } catch (geminiErr) {
-    console.warn(`[AI] ⚠ Gemini failed for ${task}: ${geminiErr.message} — falling back to Groq`);
+    const status = geminiErr.status || 'UNKNOWN_STATUS';
+    const msg = geminiErr.message || String(geminiErr);
+    console.warn(`[Gemini] model: gemini-3.6-flash / status: ${status} / provider error: ${msg}`);
   }
 
   // ── Fallback to Grok ──
@@ -40,7 +42,9 @@ async function callAI({ task, systemPrompt, userContent, imageBase64 }) {
     console.log(`[AI] ✓ ${task} served by groq`);
     return { result, provider: 'groq' };
   } catch (grokErr) {
-    console.error(`[AI] ✗ Groq also failed for ${task}: ${grokErr.message}`);
+    const status = grokErr.status || 'UNKNOWN_STATUS';
+    const msg = grokErr.message || String(grokErr);
+    console.error(`[Groq] model: fallback / status: ${status} / provider error: ${msg}`);
     throw new Error(`Both AI providers failed for task "${task}". Please try again later.`);
   }
 }
@@ -120,6 +124,78 @@ async function generateCraftBreakdown(description, images = []) {
   return callAI({ task: 'craft', systemPrompt, userContent, imageBase64 });
 }
 
+/**
+ * 5. Generate knowledge about a place in India (Explore India Phase 3).
+ */
+async function generatePlaceKnowledge(placeName, state, country, lat, lon) {
+  const systemPrompt = `You are providing educational and travel information about this Indian location.
+
+Provide useful, factual and concise information.
+Do not invent coordinates, live weather, current opening hours or unsupported facts.
+Return the response using the EXACT following JSON structure:
+{
+  "placeName": "Name of the place",
+  "state": "State",
+  "introduction": "Short introduction paragraph",
+  "history": "History paragraph",
+  "culture": "Culture paragraph",
+  "famousFoods": ["Food 1", "Food 2"],
+  "placesToVisit": [
+    { "name": "Place 1", "description": "Brief desc" }
+  ],
+  "howToReach": { "air": "Nearest airport info", "rail": "Nearest station info", "road": "Road connectivity info" },
+  "bestTimeToVisit": "Best time paragraph",
+  "geographicOverview": "Geographic overview paragraph",
+  "localTraditions": ["Tradition 1", "Tradition 2"],
+  "travelTips": ["Tip 1", "Tip 2"]
+}`;
+
+  const userContent = `Place: ${placeName}\nState: ${state}\nCountry: ${country}\nLatitude: ${lat}\nLongitude: ${lon}`;
+  
+  const responseSchema = {
+    type: "OBJECT",
+    properties: {
+      placeName: { type: "STRING" },
+      state: { type: "STRING" },
+      introduction: { type: "STRING" },
+      history: { type: "STRING" },
+      culture: { type: "STRING" },
+      famousFoods: { type: "ARRAY", items: { type: "STRING" } },
+      placesToVisit: {
+        type: "ARRAY",
+        items: {
+          type: "OBJECT",
+          properties: {
+            name: { type: "STRING" },
+            description: { type: "STRING" }
+          },
+          required: ["name", "description"]
+        }
+      },
+      howToReach: {
+        type: "OBJECT",
+        properties: {
+          air: { type: "STRING" },
+          rail: { type: "STRING" },
+          road: { type: "STRING" }
+        },
+        required: ["air", "rail", "road"]
+      },
+      bestTimeToVisit: { type: "STRING" },
+      geographicOverview: { type: "STRING" },
+      localTraditions: { type: "ARRAY", items: { type: "STRING" } },
+      travelTips: { type: "ARRAY", items: { type: "STRING" } }
+    },
+    required: [
+      "placeName", "state", "introduction", "history", "culture",
+      "famousFoods", "placesToVisit", "howToReach", "bestTimeToVisit",
+      "geographicOverview", "localTraditions", "travelTips"
+    ]
+  };
+
+  return callAI({ task: 'place-knowledge', systemPrompt, userContent, responseSchema });
+}
+
 module.exports = {
   callAI,
   verifyAIGenerated,
@@ -127,4 +203,5 @@ module.exports = {
   tagArtwork,
   writeSpotlight,
   generateCraftBreakdown,
+  generatePlaceKnowledge,
 };

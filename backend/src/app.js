@@ -23,6 +23,7 @@ app.use('/api/artworks',         require('./routes/artworks'));
 app.use('/api/spotlights',       require('./routes/spotlights'));
 app.use('/api/crafts',           require('./routes/crafts'));
 app.use('/api/india-spotlights', require('./routes/indiaSpotlights'));
+app.use('/api/explore',          require('./routes/explore.routes'));
 
 // Health check
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));

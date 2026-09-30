@@ -12,9 +12,10 @@ const GEMINI_MODEL   = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
  * @param {string} opts.systemPrompt
  * @param {string} opts.userContent
  * @param {string} [opts.imageBase64] — base64-encoded image (no data-URI prefix)
+ * @param {object} [opts.responseSchema]
  * @returns {Promise<string>} — raw text response
  */
-async function callGemini({ systemPrompt, userContent, imageBase64 }) {
+async function callGemini({ systemPrompt, userContent, imageBase64, responseSchema }) {
   if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not set');
 
   const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
@@ -36,9 +37,16 @@ async function callGemini({ systemPrompt, userContent, imageBase64 }) {
     });
   }
 
+  const config = {};
+  if (responseSchema) {
+    config.responseMimeType = 'application/json';
+    config.responseSchema = responseSchema;
+  }
+
   const response = await ai.models.generateContent({
     model: GEMINI_MODEL,
     contents: [{ role: 'user', parts }],
+    config
   });
 
   const text = response.text;
