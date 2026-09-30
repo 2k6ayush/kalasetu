@@ -1,6 +1,5 @@
 import Link from 'next/link';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import { API } from '@/lib/api';
 
 export default function ArtworkCard({ artwork }) {
   const artistName = artwork.artistId?.name || 'Unknown Artist';

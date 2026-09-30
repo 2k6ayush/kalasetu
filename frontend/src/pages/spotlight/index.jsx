@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
 import Navbar from '@/components/Navbar';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import { API } from '@/lib/api';
 
 export default function SpotlightList() {
   const [spotlights, setSpotlights] = useState([]);

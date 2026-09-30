@@ -1,6 +1,5 @@
 import { useState } from 'react';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import { API } from '@/lib/api';
 
 export default function UploadForm() {
   const [artistId, setArtistId]     = useState('');

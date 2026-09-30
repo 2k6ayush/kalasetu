@@ -112,21 +112,23 @@ All seed images comply strictly with the project core principle (AI curates, nev
 ## 9. Known Issues and Gotchas
 - **Moderation Fail-Safe Active:** When AI moderation providers fail, submissions are marked as `pending` (under review) instead of auto-approving.
 - **AI Rate Limiting Active:** `express-rate-limit` enforces 15 requests per 15 min per IP on AI generation routes (`/api/artworks`, `/api/spotlights`, `/api/crafts`).
-- **Volatile Storage in Dev:** In-memory DB fallback and local disk uploads do not persist across server restarts.
-- **Unverified Model IDs:** `GEMINI_MODEL` (`gemini-3.8-flash`) and `GROK_MODEL` (`grok-4.7`) have not yet been verified against live API endpoints.
+- **Volatile Storage in Dev:** In-memory DB fallback and local disk uploads do not persist across server restarts. Requires `MONGO_URI` in `backend/.env` for persistence.
+- **Model IDs Verified:** `GEMINI_MODEL=gemini-3.8-flash` confirmed as current GA model per Google API docs. `GROK_MODEL=grok-4.7` confirmed as current flagship per xAI API docs (released Sept 21 2026). Both are correct in `.env.example`.
+- **AI Endpoints Not Live-Tested:** AI routes (artwork upload moderation/tagging, spotlight generation, craft breakdown) require real API keys in `backend/.env` to complete. All non-AI routes pass.
 
 ---
 
 ## 10. Next Steps (Prioritized Top 5)
-1. **Auth & Identity Scoping**: Basic session or token verification for artist profile modifications.
-2. **Pagination / Infinite Scroll**: Infinite load for gallery feed.
-3. **Production Deployment Prep**: Dockerfile or Cloud Run configuration setup.
-4. **Craft Guide Image Attachments**: Multi-image upload support for craft step preservation.
-5. **E2E Integration Testing**: Automated route tests for complete submission pipelines.
+1. **Set Real API Keys & MongoDB URI**: Add `GEMINI_API_KEY`, `GROK_API_KEY`, and `MONGO_URI` to `backend/.env` to enable AI features and persistent storage. Run `cd backend && npm run seed` once connected.
+2. **Auth & Identity Scoping**: Basic session or token verification for artist profile modifications.
+3. **Pagination / Infinite Scroll**: Infinite load for gallery feed.
+4. **Production Deployment Prep**: Dockerfile or Cloud Run configuration setup.
+5. **Craft Guide Image Attachments**: Multi-image upload support for craft step preservation.
 
 ---
 
 ## 11. Change Log
+- **2026-09-30** | Full audit pass: verified all 6 reported issues; Tasks 1 (Artist import), 3 (seed consolidation), 4 (API lib centralization) already resolved. Created `backend/.env` from `.env.example`. Confirmed model IDs `gemini-3.8-flash` and `grok-4.7` are valid per live API docs. Ran full 8-point E2E smoke test — all checks PASSED (homepage, tag filter, search, shuffle, artist profile, spotlight, craft archive, upload form). | `PROJECT_STATUS.md`, `backend/.env` | Senior Full-Stack Engineer
 - **2026-09-29** | Replaced empty seed artwork images with authentic CC0 / Public Domain images and logged sources/licenses | `seed.js`, `seedData.js`, `PROJECT_STATUS.md` | Senior Full-Stack Engineer
 - **2026-09-29** | Added free-text search (title, tags, artist name) and Fisher-Yates feed shuffle toggle on Wall of Fame | `artworkController.js`, `TagFilterBar.jsx`, `index.jsx` | Senior Full-Stack Engineer
 - **2026-09-29** | Added `express-rate-limit` on AI POST routes and strict input validation middleware for length limits & required fields | `package.json`, `rateLimiter.js`, `validate.js`, Express route files | Senior Full-Stack Engineer

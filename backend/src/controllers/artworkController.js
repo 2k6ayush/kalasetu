@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const Artwork = require('../models/Artwork');
+const Artist = require('../models/Artist');
 const { moderateContent, tagArtwork } = require('../services/ai');
 
 /**

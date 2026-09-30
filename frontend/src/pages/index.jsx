@@ -3,8 +3,7 @@ import Head from 'next/head';
 import Navbar from '@/components/Navbar';
 import ArtworkCard from '@/components/ArtworkCard';
 import TagFilterBar from '@/components/TagFilterBar';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import { API } from '@/lib/api';
 
 export default function Home() {
   const [artworks, setArtworks] = useState([]);

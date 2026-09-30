@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import { API } from '@/lib/api';
 
 export default function TagFilterBar({ onFilter }) {
   const [options, setOptions] = useState({ mediums: [], techniques: [], cultures: [] });

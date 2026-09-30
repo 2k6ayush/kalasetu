@@ -30,17 +30,17 @@ async function callAI({ task, systemPrompt, userContent, imageBase64 }) {
     console.log(`[AI] ✓ ${task} served by gemini`);
     return { result, provider: 'gemini' };
   } catch (geminiErr) {
-    console.warn(`[AI] ⚠ Gemini failed for ${task}: ${geminiErr.message} — falling back to Grok`);
+    console.warn(`[AI] ⚠ Gemini failed for ${task}: ${geminiErr.message} — falling back to Groq`);
   }
 
   // ── Fallback to Grok ──
   try {
     const raw = await callGrok(payload);
     const result = parseJSON(raw);
-    console.log(`[AI] ✓ ${task} served by grok`);
-    return { result, provider: 'grok' };
+    console.log(`[AI] ✓ ${task} served by groq`);
+    return { result, provider: 'groq' };
   } catch (grokErr) {
-    console.error(`[AI] ✗ Grok also failed for ${task}: ${grokErr.message}`);
+    console.error(`[AI] ✗ Groq also failed for ${task}: ${grokErr.message}`);
     throw new Error(`Both AI providers failed for task "${task}". Please try again later.`);
   }
 }

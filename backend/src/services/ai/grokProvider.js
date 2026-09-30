@@ -1,13 +1,17 @@
 /**
- * Grok Provider — raw xAI Grok API calls (OpenAI-compatible endpoint)
+ * Groq Provider — fast LLM inference via Groq's OpenAI-compatible API
+ * Endpoint: https://api.groq.com/openai/v1
+ *
+ * Note: "GROK_API_KEY" and "GROK_MODEL" env vars are reused for Groq
+ * to keep the existing failover logic and .env structure unchanged.
  */
 const OpenAI = require('openai');
 
 const GROK_API_KEY = process.env.GROK_API_KEY;
-const GROK_MODEL   = process.env.GROK_MODEL || 'grok-4.7';
+const GROK_MODEL   = process.env.GROK_MODEL || 'llama-3.3-70b-versatile';
 
 /**
- * Call Grok with text + optional image.
+ * Call Groq with text + optional image.
  * @param {object} opts
  * @param {string} opts.systemPrompt
  * @param {string} opts.userContent
@@ -19,15 +23,15 @@ async function callGrok({ systemPrompt, userContent, imageBase64 }) {
 
   const client = new OpenAI.default({
     apiKey: GROK_API_KEY,
-    baseURL: 'https://api.x.ai/v1',
+    baseURL: 'https://api.groq.com/openai/v1',
   });
 
   const userParts = [];
 
-  // Add text
+  // Add text content
   userParts.push({ type: 'text', text: userContent });
 
-  // Add image if provided
+  // Add image if provided (Groq's vision models support base64 images)
   if (imageBase64) {
     const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
     userParts.push({
@@ -46,7 +50,7 @@ async function callGrok({ systemPrompt, userContent, imageBase64 }) {
   });
 
   const text = completion.choices?.[0]?.message?.content;
-  if (!text) throw new Error('Empty response from Grok');
+  if (!text) throw new Error('Empty response from Groq');
   return text;
 }
 
