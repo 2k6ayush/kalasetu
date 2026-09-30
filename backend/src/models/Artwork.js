@@ -2,8 +2,10 @@ const mongoose = require('mongoose');
 
 const artworkSchema = new mongoose.Schema({
   artistId:         { type: mongoose.Schema.Types.ObjectId, ref: 'Artist', required: true },
-  imagePath:        { type: String, default: '' },
-  artistNote:       { type: String, default: '' },
+  type:             { type: String, enum: ['IMAGE', 'VIDEO', 'AUDIO', 'TEXT'], default: 'IMAGE' },
+  title:            { type: String, default: '' },
+  imagePath:        { type: String, default: '' }, // acts as mediaUrl for video/audio too
+  artistNote:       { type: String, default: '' }, // used as text content for text posts
   tags: {
     medium:            { type: String, default: '' },
     technique:         { type: String, default: '' },

@@ -9,17 +9,27 @@ const { verifyGatekeeper } = require('../services/ai/moderationService');
  */
 async function createArtwork(req, res) {
   try {
-    const { artistId, artistNote } = req.body;
-    if (!req.file) return res.status(400).json({ error: 'Image file is required' });
+    const { artistId, artistNote, title, type = 'IMAGE' } = req.body;
+    if (type !== 'TEXT' && !req.file) return res.status(400).json({ error: 'Media file is required' });
     if (!artistId) return res.status(400).json({ error: 'artistId is required' });
 
-    const imagePath = `/uploads/${req.file.filename}`;
+    let imagePath = '';
+    let absPath = '';
+    let imageBase64 = null;
 
-    // Read image as base64 for AI calls
-    const absPath = path.join(__dirname, '..', '..', 'uploads', req.file.filename);
-    const imageBase64 = fs.readFileSync(absPath, { encoding: 'base64' });
+    if (req.file) {
+      imagePath = `/uploads/${req.file.filename}`;
+      absPath = path.join(__dirname, '..', '..', 'uploads', req.file.filename);
+    }
 
-    // ── Single Gatekeeper Verification ──
+    let tags = { medium: '', technique: '', culturalInfluence: '', mood: [] };
+    let tagProvider = 'unknown';
+
+    // ── ONLY VERIFY/TAG IMAGES ──
+    if (type === 'IMAGE' && absPath) {
+      imageBase64 = fs.readFileSync(absPath, { encoding: 'base64' });
+
+      // ── Single Gatekeeper Verification ──
     try {
       const gatekeeper = await verifyGatekeeper({ imageBase64, textContent: artistNote });
       if (!gatekeeper.approved) {
@@ -37,25 +47,26 @@ async function createArtwork(req, res) {
       return res.status(503).json({ error: 'AI Verification Service Unavailable' });
     }
 
-    // ── Step 2: Auto-tag ──
-    let tags = { medium: '', technique: '', culturalInfluence: '', mood: [] };
-    let tagProvider = 'unknown';
-    try {
-      const tagRes = await tagArtwork(imageBase64);
-      tagProvider = tagRes.provider;
-      const t = tagRes.result;
-      tags = {
-        medium: t.medium || '',
-        technique: t.technique || '',
-        culturalInfluence: t.cultural_influence || '',
-        mood: Array.isArray(t.mood) ? t.mood : [],
-      };
-    } catch (aiErr) {
-      console.warn('[Artwork] AI tagging unavailable:', aiErr.message);
+      // ── Step 2: Auto-tag ──
+      try {
+        const tagRes = await tagArtwork(imageBase64);
+        tagProvider = tagRes.provider;
+        const t = tagRes.result;
+        tags = {
+          medium: t.medium || '',
+          technique: t.technique || '',
+          culturalInfluence: t.cultural_influence || '',
+          mood: Array.isArray(t.mood) ? t.mood : [],
+        };
+      } catch (aiErr) {
+        console.warn('[Artwork] AI tagging unavailable:', aiErr.message);
+      }
     }
 
     const artwork = await Artwork.create({
       artistId,
+      type,
+      title: title || '',
       imagePath,
       artistNote: artistNote || '',
       tags,
