@@ -109,17 +109,17 @@ export default function IndiaSpotlightList() {
         <meta name="description" content="Live AI-curated blog about India's hidden traditional arts, endangered crafts, and cultural heritage — updated every 2 minutes." />
       </Head>
       <Navbar />
-      <main className="container page">
-
+      <main className="container page" style={{ paddingTop: '160px' }}>
         {/* ── Header ── */}
-        <div style={{ textAlign: 'center', marginBottom: 48 }}>
+        <div style={{ textAlign: 'center', marginBottom: 48, borderBottom: '1px solid var(--border-color)', paddingBottom: '32px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 12 }}>
             <span className="live-badge">🔴 LIVE</span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>New post every 2 minutes</span>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontFamily: 'var(--font-body)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>New story every 2 minutes</span>
           </div>
-          <h1 className="page-title">India Culture Blog</h1>
-          <p className="page-subtitle">
-            AI-curated stories on India's hidden traditional arts, endangered crafts,<br />
+          <p className="editorial-caption" style={{ marginBottom: '8px' }}>The Kalāsetu Archive</p>
+          <h1 className="editorial-title" style={{ fontSize: '3.5rem', marginBottom: '16px' }}>Cultural Spotlights</h1>
+          <p style={{ fontSize: '1.2rem', color: 'var(--text-muted)', maxWidth: '800px', margin: '0 auto', lineHeight: 1.6 }}>
+            Curated stories on India's hidden traditional arts, endangered crafts,
             and living cultural heritage — from every corner of the subcontinent.
           </p>
         </div>
@@ -169,70 +169,67 @@ export default function IndiaSpotlightList() {
 
         {/* ── Posts list ── */}
         {loading ? (
-          <div className="empty-state"><span className="spinner" /></div>
+          <div className="text-center" style={{ padding: '60px 0' }}><span className="spinner" /></div>
         ) : posts.length === 0 ? (
-          <div className="empty-state">
-            <h3>No posts found</h3>
-            <p style={{ marginTop: 8 }}>
+          <div className="text-center" style={{ padding: '60px 0', border: '1px solid var(--border-color)' }}>
+            <h3 style={{ marginBottom: '8px', fontFamily: 'var(--font-display)' }}>No stories found</h3>
+            <p style={{ color: 'var(--text-muted)' }}>
               {stateFilter || artFilter
-                ? 'Try clearing the filters — more posts are being generated.'
-                : 'The AI is writing the first posts… refresh in a moment.'}
+                ? 'Try clearing the filters — more stories are being documented.'
+                : 'The archive is writing the first stories… refresh in a moment.'}
             </p>
           </div>
         ) : (
-          <div className="blog-list">
+          <div className="editorial-grid">
             {posts.map((post, idx) => (
               <Link
                 href={`/spotlight/india/${post._id}`}
                 key={post._id}
-                style={{ textDecoration: 'none' }}
+                style={{ textDecoration: 'none', gridColumn: 'span 4' }}
               >
                 <div
                   className={`blog-card india-card ${idx === 0 && post._id === newestPost?._id ? 'newest-card' : ''}`}
+                  style={{ border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', height: '100%', background: 'transparent' }}
                 >
                   {post.imageUrl && (
-                    <img 
-                      src={post.imageUrl} 
-                      alt={post.artType} 
-                      style={{ 
-                        width: '100%', 
-                        height: '240px', 
-                        objectFit: 'cover', 
-                        borderRadius: 'var(--radius-sm)', 
-                        marginBottom: '20px' 
-                      }} 
-                    />
+                    <div style={{ width: '100%', aspectRatio: '4/3', borderBottom: '1px solid var(--border-color)', overflow: 'hidden' }}>
+                      <img 
+                        src={post.imageUrl} 
+                        alt={post.artType} 
+                        style={{ 
+                          width: '100%', 
+                          height: '100%', 
+                          objectFit: 'cover'
+                        }} 
+                      />
+                    </div>
                   )}
 
-                  {/* Tags row */}
-                  <div className="india-tags" style={{ marginBottom: 12 }}>
-                    <span className="india-tag state-tag">{post.state}</span>
-                    <span className="india-tag art-tag">{post.artType}</span>
-                    {idx === 0 && <span className="india-tag new-tag">✨ Latest</span>}
-                  </div>
+                  <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                    {/* Tags row */}
+                    <div style={{ marginBottom: 16, display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <span className="editorial-caption">{post.state}</span>
+                      <span className="editorial-caption" style={{ color: 'var(--text-muted)' }}>·</span>
+                      <span className="editorial-caption">{post.artType}</span>
+                      {idx === 0 && <span className="editorial-caption" style={{ color: 'var(--accent-primary)' }}>✨ LATEST</span>}
+                    </div>
 
-                  <h3 style={{ marginBottom: 10, color: 'var(--text-primary)', lineHeight: 1.35 }}>
-                    {post.title}
-                  </h3>
+                    <h3 style={{ marginBottom: 16, fontFamily: 'var(--font-display)', fontSize: '1.5rem', color: 'var(--text-primary)', lineHeight: 1.2 }}>
+                      {post.title}
+                    </h3>
 
-                  <div className="meta" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-                    <span title={exactTime(post.publishedAt)} style={{ cursor: 'default' }}>
-                      🕐 {exactTime(post.publishedAt)}
-                    </span>
-                    <span style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>
-                      {timeAgo(post.publishedAt)}
-                    </span>
-                    {post.aiProvider && (
-                      <span className="provider-badge">via {post.aiProvider}</span>
-                    )}
-                  </div>
+                    <p style={{ color: 'var(--text-muted)', lineHeight: 1.7, fontSize: '0.95rem', marginBottom: '24px', flex: 1 }}>
+                      {post.body?.substring(0, 180)}…
+                    </p>
 
-                  <p style={{ color: 'var(--text-secondary)', lineHeight: 1.75 }}>
-                    {post.body?.substring(0, 220)}…
-                  </p>
-
-                  <div style={{ marginTop: 16, fontSize: '0.8rem', color: 'var(--accent-blue)', fontWeight: 600 }}>
-                    Read full article →
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                      <span className="editorial-caption" title={exactTime(post.publishedAt)} style={{ cursor: 'default' }}>
+                        {timeAgo(post.publishedAt)}
+                      </span>
+                      {post.aiProvider && (
+                        <span className="editorial-caption" style={{ color: 'var(--text-muted)' }}>· VIA {post.aiProvider.toUpperCase()}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </Link>

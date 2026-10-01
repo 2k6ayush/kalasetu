@@ -8,49 +8,49 @@ export default function ArtworkCard({ artwork }) {
     ? (artwork.imagePath.startsWith('http') ? artwork.imagePath : `${API}${artwork.imagePath}`)
     : null;
 
-  // Generate a unique gradient from the artwork's tags for visual variety
-  const hue1 = ((artwork.tags?.medium?.length || 3) * 37) % 360;
-  const hue2 = (hue1 + 60) % 360;
-
   return (
-    <Link href={`/artist/${artwork.artistId?._id || artwork.artistId}`} className="artwork-card" id={`artwork-${artwork._id}`}>
-      <div style={{ overflow: 'hidden' }}>
+    <Link href={`/artist/${artwork.artistId?._id || artwork.artistId}`} className="artwork-card" id={`artwork-${artwork._id}`} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
+      <div className="artwork-card-img-wrapper">
         {imgSrc ? (
           <img src={imgSrc} alt={artwork.artistNote || 'Artwork'} loading="lazy" />
         ) : (
           <div style={{
             width: '100%', aspectRatio: '4/3',
-            background: `linear-gradient(135deg, hsl(${hue1}, 50%, 20%), hsl(${hue2}, 60%, 15%))`,
+            background: 'var(--bg-secondary)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexDirection: 'column', gap: 8, padding: 24,
           }}>
-            <span style={{ fontSize: '2rem', opacity: 0.3 }}>🎨</span>
-            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', textAlign: 'center', fontStyle: 'italic' }}>
+            <span style={{ fontSize: '2rem', opacity: 0.3, filter: 'grayscale(100%)' }}>🎨</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', fontStyle: 'italic', fontFamily: 'var(--font-display)' }}>
               {artwork.tags?.medium || 'Artwork'}
             </span>
           </div>
         )}
       </div>
-      <div className="artwork-card-body">
-        {artwork.zkProofHash && (
-          <div style={{ marginBottom: '8px' }}>
-            <span 
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.65rem', padding: '2px 6px', background: 'rgba(217, 119, 6, 0.15)', color: 'var(--accent-primary)', borderRadius: '4px', border: '1px solid rgba(217, 119, 6, 0.3)', cursor: 'pointer', fontFamily: 'monospace' }}
-              title={`Digital Fingerprint: ${artwork.zkProofHash}`}
-              onClick={(e) => {
-                e.preventDefault();
-                alert(`🔒 ZK Copyright Fingerprint:\n\n${artwork.zkProofHash}\n\nThis hash mathematically proves the artist possesses the heavy original source file without revealing it.`);
-              }}
-            >
-              🔒 ZK Copyright Locked
-            </span>
-          </div>
-        )}
+      
+      <div className="artwork-card-info" style={{ paddingTop: '12px' }}>
         {artwork.artistNote && (
           <p className="artwork-card-title">{artwork.artistNote}</p>
         )}
-        <p className="artwork-card-artist">by {artistName}</p>
-        <div className="tag-list">
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+          <p className="artwork-card-meta" style={{ margin: 0, fontWeight: 500 }}>BY {artistName}</p>
+          
+          {artwork.zkProofHash && (
+            <span 
+              style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.65rem', padding: '2px 0', color: 'var(--text-muted)', cursor: 'pointer' }}
+              title={`Digital Fingerprint: ${artwork.zkProofHash}`}
+              onClick={(e) => {
+                e.preventDefault();
+                alert(`🔒 PRIVACY-PRESERVING VERIFICATION COMPLETED ✓\n\nReference: ${artwork.zkProofHash.substring(0,20)}...`);
+              }}
+            >
+              ✓ VERIFIED
+            </span>
+          )}
+        </div>
+
+        <div className="tag-list" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
           {artwork.tags?.medium && <span className="tag">{artwork.tags.medium}</span>}
           {artwork.tags?.technique && <span className="tag">{artwork.tags.technique}</span>}
           {artwork.tags?.culturalInfluence && <span className="tag">{artwork.tags.culturalInfluence}</span>}

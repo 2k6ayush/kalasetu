@@ -256,14 +256,14 @@ export default function UploadForm() {
   // ── RENDER STAGE 1 ──
   if (!artistId) {
     return (
-      <div className="form-card">
-        <h2 style={{ marginBottom: 24, fontFamily: 'var(--font-display)' }}>Create Your Artist Profile</h2>
+      <div className="form-card" style={{ maxWidth: '600px', border: '1px solid var(--border-color)', padding: '40px' }}>
+        <p className="editorial-caption" style={{ marginBottom: '8px' }}>Artist Registration</p>
+        <h2 className="editorial-title" style={{ fontSize: '2rem', marginBottom: '32px' }}>01 — Identity Check</h2>
 
         {/* IDENTITY VERIFICATION BOX */}
         {!hasVerification ? (
-          <div style={{ background: 'var(--bg-secondary)', padding: '24px', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '32px' }}>
-            <h3 style={{ marginTop: 0, marginBottom: 16 }}>Identity Verification</h3>
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: 20 }}>Upload your Aadhaar card to continue.</p>
+          <div style={{ padding: '24px', border: '1px solid var(--border-color)', marginBottom: '32px' }}>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: 24 }}>Upload your Aadhaar card to continue. Your document is processed locally and never stored.</p>
             
             <form onSubmit={handleVerifyIdentity}>
               <div className="form-group">
@@ -307,7 +307,8 @@ export default function UploadForm() {
 
         {/* ARTIST PROFILE FORM */}
         <div style={{ opacity: hasVerification ? 1 : 0.5, pointerEvents: hasVerification ? 'auto' : 'none' }}>
-          <p style={{ color: 'var(--text-muted)', marginBottom: 24 }}>You only need to do this once. After your profile is created, you can upload unlimited artwork, videos, and texts.</p>
+          <h2 className="editorial-title" style={{ fontSize: '2rem', marginBottom: '8px', marginTop: '40px' }}>02 — Artist Profile</h2>
+          <p style={{ color: 'var(--text-muted)', marginBottom: 32, fontSize: '0.9rem' }}>You only need to do this once. After your profile is created, you can upload unlimited artwork, videos, and texts.</p>
 
           <form onSubmit={createArtistProfile}>
             <div className="form-group" style={{ textAlign: 'center' }}>
@@ -356,15 +357,18 @@ export default function UploadForm() {
 
   // ── RENDER STAGE 2 ──
   return (
-    <div className="form-card" style={{ maxWidth: 700 }}>
+    <div className="form-card" style={{ maxWidth: '600px', border: '1px solid var(--border-color)', padding: '40px' }}>
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid var(--border-color)' }}>
-        <h2 style={{ margin: 0, fontFamily: 'var(--font-display)' }}>Create Content</h2>
-        <button className="btn btn-secondary" onClick={logoutArtist} style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Switch Account</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 32, paddingBottom: 16, borderBottom: '1px solid var(--border-color)' }}>
+        <div>
+          <p className="editorial-caption">Contribute to the Archive</p>
+          <h2 className="editorial-title" style={{ fontSize: '2rem', margin: 0 }}>Submit Your Work</h2>
+        </div>
+        <button onClick={logoutArtist} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', textDecoration: 'underline' }}>Switch Account</button>
       </div>
 
-      <div style={{ marginBottom: 24 }}>
-        <label style={{ display: 'block', marginBottom: 12, fontWeight: 'bold' }}>What do you want to share?</label>
+      <div style={{ marginBottom: 32 }}>
+        <label style={{ display: 'block', marginBottom: 12, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>What would you like to share?</label>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
           {['IMAGE', 'VIDEO', 'AUDIO', 'TEXT'].map(type => (
             <button

@@ -73,85 +73,89 @@ export default function ArtistProfile() {
       <Navbar />
       
       {/* CHANNEL BANNER (Placeholder gradient) */}
-      <div style={{ height: '200px', background: 'linear-gradient(135deg, var(--accent-primary) 0%, #1e1e1e 100%)', width: '100%' }} />
+      <div style={{ height: '30vh', background: 'var(--text-primary)', width: '100%', position: 'relative' }}>
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', background: 'linear-gradient(to top, var(--bg-primary), transparent)' }} />
+      </div>
 
-      <main className="container page" style={{ marginTop: '-60px' }}>
+      <main className="container page" style={{ marginTop: '-100px', position: 'relative', zIndex: 10 }}>
         {/* HEADER */}
-        <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-end', marginBottom: '32px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '40px' }}>
           {displayImage ? (
             <img 
               src={displayImage.startsWith('http') ? displayImage : `http://localhost:5000${displayImage}`}
               alt={artist.name}
-              style={{ width: '150px', height: '150px', borderRadius: '50%', objectFit: 'cover', border: '4px solid var(--bg-primary)' }}
+              style={{ width: '180px', height: '180px', borderRadius: '50%', objectFit: 'cover', border: '4px solid var(--bg-primary)', marginBottom: '24px' }}
             />
           ) : (
-            <div style={{ width: '150px', height: '150px', borderRadius: '50%', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem', border: '4px solid var(--bg-primary)', color: 'var(--accent-primary)' }}>
+            <div style={{ width: '180px', height: '180px', borderRadius: '50%', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: '4rem', border: '4px solid var(--bg-primary)', color: 'var(--text-muted)', marginBottom: '24px' }}>
               {initial}
             </div>
           )}
           
-          <div style={{ paddingBottom: '8px' }}>
-            <h1 style={{ margin: '0 0 4px 0', fontSize: '2.5rem' }}>{artist.name}</h1>
+          <div>
+            <h1 className="editorial-title" style={{ margin: '0 0 8px 0', fontSize: '3rem' }}>{artist.name}</h1>
             
-            <div style={{ display: 'flex', gap: '16px', color: 'var(--text-muted)', fontSize: '1rem', flexWrap: 'wrap', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', gap: '16px', color: 'var(--text-muted)', fontSize: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '16px', fontFamily: 'var(--font-body)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               {artist.username && <span>@{artist.username}</span>}
               {contentTypes.length > 0 && (
                 <span>• {contentTypes.join(', ')}</span>
               )}
-              <span>• {artworks.length} approved {artworks.length === 1 ? 'artwork' : 'artworks'}</span>
+              <span>• {artworks.length} {artworks.length === 1 ? 'WORK' : 'WORKS'}</span>
             </div>
           </div>
         </div>
 
         {/* ABOUT */}
-        <div style={{ background: 'var(--bg-secondary)', padding: '24px', borderRadius: 'var(--radius-md)', marginBottom: '40px', border: '1px solid var(--border-color)' }}>
-          <h3 style={{ margin: '0 0 12px 0' }}>About the Artist</h3>
-          <p style={{ margin: '0 0 16px 0', lineHeight: 1.6 }}>{artist.bio || 'Independent creator on Kalasetu.'}</p>
+        <div style={{ maxWidth: '800px', margin: '0 auto 40px', textAlign: 'center', borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)', padding: '32px 0' }}>
+          <p className="editorial-caption" style={{ marginBottom: '16px' }}>About the Artist</p>
+          <p style={{ margin: '0 auto 24px', lineHeight: 1.8, fontSize: '1.1rem', maxWidth: '600px' }}>{artist.bio || 'Independent creator on Kalasetu.'}</p>
           
           {artist.socialLink && (
-            <div style={{ marginBottom: '24px' }}>
-              <strong>Links: </strong>
-              <a href={artist.socialLink} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }}>
-                {artist.socialLink}
+            <div style={{ marginBottom: '32px' }}>
+              <a href={artist.socialLink} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-primary)', textDecoration: 'underline', fontFamily: 'var(--font-body)', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.85rem' }}>
+                Visit Website
               </a>
             </div>
           )}
 
-          <div>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
             {spotlight ? (
-              <Link href={`/spotlight/${spotlight._id}`} className="btn btn-secondary">
-                📖 Read Artist Spotlight
+              <Link href={`/spotlight/${spotlight._id}`} style={{ textDecoration: 'none', border: '1px solid var(--text-primary)', padding: '12px 24px', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.85rem' }}>
+                📖 Read Editorial Story
               </Link>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <button
-                  className="btn btn-primary"
                   onClick={handleGenerateSpotlight}
                   disabled={generatingSpotlight}
                   id="generate-spotlight-btn"
+                  style={{ background: 'transparent', border: '1px solid var(--text-primary)', padding: '12px 24px', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.85rem', cursor: 'pointer' }}
                 >
-                  {generatingSpotlight && <span className="spinner" />}
                   {generatingSpotlight ? 'Generating Editorial Story…' : '✨ Generate Artist Spotlight'}
                 </button>
-                {spotlightError && <span style={{ color: 'var(--color-error)' }}>{spotlightError}</span>}
+                {spotlightError && <span style={{ color: 'var(--danger)' }}>{spotlightError}</span>}
               </div>
             )}
           </div>
         </div>
 
         {/* WORKS */}
-        <div style={{ display: 'flex', gap: 16, marginBottom: 24, borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', overflowX: 'auto' }}>
+        <div style={{ display: 'flex', gap: '24px', marginBottom: '40px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', justifyContent: 'center', overflowX: 'auto' }}>
           {['ALL', 'IMAGE', 'VIDEO', 'AUDIO', 'TEXT'].map(t => (
             <button 
               key={t}
               onClick={() => setFilterType(t)}
               style={{
-                background: filterType === t ? 'var(--text-primary)' : 'transparent',
-                color: filterType === t ? 'var(--bg-primary)' : 'var(--text-secondary)',
-                border: filterType === t ? 'none' : '1px solid var(--border-color)',
-                padding: '6px 16px',
-                borderRadius: 'var(--radius-full)',
-                fontWeight: 'bold',
+                background: 'transparent',
+                border: 'none',
+                color: filterType === t ? 'var(--text-primary)' : 'var(--text-muted)',
+                padding: '0 0 4px 0',
+                borderBottom: filterType === t ? '1px solid var(--text-primary)' : '1px solid transparent',
+                fontFamily: 'var(--font-body)',
+                fontSize: '0.85rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                fontWeight: filterType === t ? '600' : '400',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap'
               }}

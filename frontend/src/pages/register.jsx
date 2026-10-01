@@ -36,13 +36,13 @@ export default function Register() {
         <title>Sign Up — Kalāsetu</title>
       </Head>
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-primary)' }}>
-        <div className="form-card" style={{ maxWidth: '400px', width: '100%', padding: '40px', textAlign: 'center' }}>
+        <div className="form-card" style={{ maxWidth: '400px', width: '100%', padding: '40px', textAlign: 'center', border: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
           <Link href="/" style={{ textDecoration: 'none', color: 'var(--text-primary)' }}>
-            <h1 className="navbar-brand" style={{ fontSize: '2rem', marginBottom: '8px' }}>Kalāsetu</h1>
+            <h1 className="editorial-title" style={{ fontSize: '2.5rem', marginBottom: '8px' }}>Kalāsetu</h1>
           </Link>
-          <p className="page-subtitle" style={{ marginBottom: '32px' }}>Create your creator account</p>
+          <p className="editorial-caption" style={{ marginBottom: '32px' }}>Create your creator account</p>
           
-          {error && <div style={{ color: 'red', marginBottom: '16px' }}>{error}</div>}
+          {error && <div className="alert alert-error" style={{ marginBottom: '16px' }}>{error}</div>}
 
           <form onSubmit={handleSignUp} style={{ textAlign: 'left' }}>
             <div className="form-group">
@@ -94,8 +94,8 @@ export default function Register() {
             </button>
           </form>
           <div style={{ marginTop: '24px' }}>
-            <p style={{ color: 'var(--text-muted)' }}>
-              Already have an account? <Link href="/login" style={{ color: 'var(--brand-primary)', textDecoration: 'none' }}>Sign In</Link>
+            <p>
+              Already have an account? <Link href="/login" style={{ color: 'var(--accent-primary)', textDecoration: 'underline' }}>Sign In</Link>
             </p>
           </div>
         </div>
