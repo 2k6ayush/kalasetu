@@ -24,11 +24,7 @@ export default function UploadForm() {
   const [mediaFile, setMediaFile] = useState(null);
   const [mediaPreview, setMediaPreview] = useState(null);
   
-  // ── Stage 2.5: ZK Authorship Proof ──
-  const [zkProofHash, setZkProofHash] = useState(null);
-  const [isHashing, setIsHashing] = useState(false);
-  const [sourceFileName, setSourceFileName] = useState('');
-  
+
   const [result, setResult] = useState(null);
 
   // ── Tag review & editing state (IMAGE only) ──
@@ -40,100 +36,54 @@ export default function UploadForm() {
   const [tagSaveSuccess, setTagSaveSuccess] = useState(false);
   const [tagSaveError, setTagSaveError] = useState('');
 
-  // ── Stage 1.5: ZK Demo State ──
-  const [challenge, setChallenge] = useState(null);
-  const [demoSecret, setDemoSecret] = useState('');
-  const [zkStep, setZkStep] = useState(0); // 0: initial, 1: generating credential, 2: proving, 3: submitting
-  
-  const [zkLoading, setZkLoading] = useState(false);
-  const [zkSuccess, setZkSuccess] = useState(false);
-  const [zkError, setZkError] = useState('');
+  // ── Stage 1.5: Identity Verification State ──
+  const [idFile, setIdFile] = useState(null);
+  const [idFileName, setIdFileName] = useState('');
+  const [idLoading, setIdLoading] = useState(false);
+  const [idSuccess, setIdSuccess] = useState(false);
+  const [idError, setIdError] = useState('');
+  const [consent, setConsent] = useState(false);
 
-  const hasVerification = user?.aadhaarVerified || zkSuccess;
+  const hasVerification = user?.aadhaarVerified || idSuccess;
 
   // Auto-login from AuthContext
   useEffect(() => {
     if (user && (user._id || user.id)) {
       setArtistId(user._id || user.id);
-      if (!hasVerification) {
-        const token = localStorage.getItem('token');
-        fetch(`${API}/api/auth/aadhaar/challenge`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (data.challenge) setChallenge(data.challenge);
-        })
-        .catch(err => console.error("Failed to fetch challenge", err));
-      }
     }
-  }, [user, hasVerification]);
+  }, [user]);
 
-  // Load snarkjs if not present
-  useEffect(() => {
-    if (!window.snarkjs) {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/snarkjs@0.7.0/build/snarkjs.min.js';
-      document.head.appendChild(script);
-    }
-  }, []);
-
-  async function handleVerify() {
-    if (!challenge) return setZkError('Challenge not ready');
-    setZkError('');
-    setZkLoading(true);
-
+  async function handleVerifyIdentity(e) {
+    e.preventDefault();
+    if (!idFile) return setIdError('Please select a document.');
+    if (!consent) return setIdError('Please confirm consent.');
+    
+    setIdLoading(true);
+    setIdError('');
+    
     try {
-      setZkStep(1); // generating credential
-      await new Promise(r => setTimeout(r, 600));
-      // Generate a demo secret
-      const randomValues = new Uint32Array(1);
-      window.crypto.getRandomValues(randomValues);
-      const secretVal = randomValues[0].toString();
-      setDemoSecret(secretVal);
+      const formData = new FormData();
+      formData.append('document', idFile);
       
-      setZkStep(2); // proving
-      await new Promise(r => setTimeout(r, 600));
-      
-      if (!window.snarkjs) throw new Error('ZK Prover library not loaded');
-
-      // The scope will be a fixed number string for the demo, e.g. 12345
-      const scope = "12345";
-      
-      // We must pass string challenge as number. We'll extract a number from the hex challenge for the demo.
-      const challengeNum = parseInt(challenge.substring(0, 8), 16).toString();
-      
-      const { proof, publicSignals } = await window.snarkjs.groth16.fullProve(
-        { secret: secretVal, challenge: challengeNum, scope: scope },
-        "/zk/identity.wasm",
-        "/zk/identity_final.zkey"
-      );
-
-      setZkStep(3); // submitting
       const token = localStorage.getItem('token');
-      
-      const res = await fetch(`${API}/api/auth/aadhaar/proof`, {
+      const res = await fetch(`${API}/api/artists/verify-identity`, {
         method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          proof,
-          publicSignals,
-          signal: challenge,
-          nullifier: publicSignals[0] // output nullifier
-        })
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to verify proof');
       
-      setZkSuccess(true);
-    } catch (err) {
-      setZkError(err.message);
+      if (!res.ok || !data.verified) {
+        throw new Error(data.reason || data.error || 'Verification failed');
+      }
+      
+      setIdSuccess(true);
+      setIdFile(null);
+      setIdFileName('');
+    } catch(err) {
+      setIdError(err.message);
     } finally {
-      setZkLoading(false);
-      setZkStep(0);
+      setIdLoading(false);
     }
   }
 
@@ -157,39 +107,7 @@ export default function UploadForm() {
     }
   }
 
-  async function handleSourceFile(e) {
-    const f = e.target.files[0];
-    if (!f) return;
-    setSourceFileName(f.name);
-    setIsHashing(true);
-    setZkProofHash(null);
-    setError('');
 
-    try {
-      // To prevent browser crashes with massive 2GB+ files, we read up to the first 100MB.
-      // This provides a unique deterministic fingerprint of the file without crashing the tab.
-      const slice = f.slice(0, 100 * 1024 * 1024);
-      
-      // Use FileReader to avoid blocking the main thread during read
-      const buffer = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.onerror = (e) => reject(new Error('File read failed'));
-        reader.readAsArrayBuffer(slice);
-      });
-
-      const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-      
-      setZkProofHash(hashHex);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to generate ZK hash from source file.');
-    } finally {
-      setIsHashing(false);
-    }
-  }
 
 
 
@@ -236,13 +154,32 @@ export default function UploadForm() {
 
     setLoading(true);
     try {
+      let autoZkHash = null;
+      if (contentType === 'TEXT') {
+        const buffer = new TextEncoder().encode(artistNote);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        autoZkHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      } else if (mediaFile) {
+        const slice = mediaFile.slice(0, 100 * 1024 * 1024);
+        const buffer = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.onerror = () => reject(new Error('File read failed'));
+          reader.readAsArrayBuffer(slice);
+        });
+        const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        autoZkHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      }
+
       const formData = new FormData();
       formData.append('artistId', artistId);
       formData.append('type', contentType);
       if (title) formData.append('title', title);
       if (artistNote) formData.append('artistNote', artistNote);
       if (mediaFile) formData.append('image', mediaFile);
-      if (zkProofHash) formData.append('zkProofHash', zkProofHash);
+      if (autoZkHash) formData.append('zkProofHash', autoZkHash);
 
       const token = localStorage.getItem('token');
       const res = await fetch(`${API}/api/artworks`, { 
@@ -268,8 +205,6 @@ export default function UploadForm() {
         setArtistNote('');
         setMediaFile(null);
         setMediaPreview(null);
-        setZkProofHash(null);
-        setSourceFileName('');
       }
     } catch (err) {
       setError(err.message || 'Upload failed — please try again');
@@ -323,97 +258,105 @@ export default function UploadForm() {
     return (
       <div className="form-card">
         <h2 style={{ marginBottom: 24, fontFamily: 'var(--font-display)' }}>Create Your Artist Profile</h2>
-        <p style={{ color: 'var(--text-muted)', marginBottom: 24 }}>You only need to do this once. After your profile is created, you can upload unlimited artwork, videos, and texts.</p>
 
-        <form onSubmit={createArtistProfile}>
-          <div className="form-group" style={{ textAlign: 'center' }}>
-            <div 
-              style={{ width: 120, height: 120, borderRadius: '50%', background: 'var(--bg-secondary)', border: '2px dashed var(--border-color)', margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: 'pointer' }}
-              onClick={() => document.getElementById('profile-input').click()}
-            >
-              {profilePhotoPreview ? <img src={profilePhotoPreview} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '2rem' }}>📷</span>}
-            </div>
-            <label style={{ cursor: 'pointer', color: 'var(--accent-primary)' }} onClick={() => document.getElementById('profile-input').click()}>
-              Upload Profile Image *
-            </label>
-            <input type="file" id="profile-input" accept="image/*" onChange={handleProfilePhoto} style={{ display: 'none' }} />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="new-artist-name">Artist Name *</label>
-            <input id="new-artist-name" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Your artist name" required />
-          </div>
-          <div className="form-group">
-            <label htmlFor="new-artist-username">Username</label>
-            <input id="new-artist-username" value={newUsername} onChange={e => setNewUsername(e.target.value)} placeholder="e.g. ayush_arts" />
-          </div>
-          <div className="form-group">
-            <label htmlFor="new-artist-bio">Bio</label>
-            <textarea id="new-artist-bio" value={newBio} onChange={e => setNewBio(e.target.value)} placeholder="Brief bio" rows={3} />
-          </div>
-          <div className="form-group">
-            <label htmlFor="new-artist-social">Social Link</label>
-            <input id="new-artist-social" value={newSocial} onChange={e => setNewSocial(e.target.value)} placeholder="https://..." />
-          </div>
-
-          {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error}</div>}
-
-          <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%' }}>
-            {loading && <span className="spinner" />}
-            {loading ? 'Creating Profile…' : 'Create Artist Profile'}
-          </button>
-        </form>
-      </div>
-    );
-  }
-
-  // ── RENDER STAGE 1.5 (ZK Demo) ──
-  if (!hasVerification) {
-    return (
-      <div className="form-card" style={{ maxWidth: 500 }}>
-        <h2 style={{ marginBottom: 24, fontFamily: 'var(--font-display)', textAlign: 'center' }}>Private Identity Verification</h2>
-        
-        <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px', marginBottom: '24px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-          <p style={{ margin: '0 0 8px' }}>Your identity credential is processed locally. Kalāsetu receives only a zero-knowledge proof.</p>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 24 }}>
-          {zkLoading ? (
-            <div style={{ textAlign: 'center' }}>
-              <span className="spinner" style={{ marginBottom: 12 }} />
-              <div style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>
-                {zkStep === 1 && 'Creating credential...'}
-                {zkStep === 2 && 'Generating zero-knowledge proof...'}
-                {zkStep === 3 && 'Submitting proof...'}
-              </div>
-            </div>
-          ) : (
-            <>
-              {challenge ? (
-                <button onClick={handleVerify} className="btn btn-primary" style={{ width: '100%', marginBottom: 16 }}>
-                  Generate Private Credential & Verify
+        {/* IDENTITY VERIFICATION BOX */}
+        {!hasVerification ? (
+          <div style={{ background: 'var(--bg-secondary)', padding: '24px', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '32px' }}>
+            <h3 style={{ marginTop: 0, marginBottom: 16 }}>Identity Verification</h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: 20 }}>Upload your Aadhaar card to continue.</p>
+            
+            <form onSubmit={handleVerifyIdentity}>
+              <div className="form-group">
+                <input 
+                  type="file" 
+                  id="aadhaar-upload" 
+                  accept="image/jpeg, image/png, image/jpg" 
+                  onChange={e => {
+                    if (e.target.files[0]) {
+                      setIdFile(e.target.files[0]);
+                      setIdFileName(e.target.files[0].name);
+                      setIdError('');
+                    }
+                  }} 
+                  style={{ display: 'none' }}
+                />
+                <button type="button" className="btn btn-secondary" onClick={() => document.getElementById('aadhaar-upload').click()} style={{ width: '100%', marginBottom: 12 }}>
+                  {idFileName ? `Document selected` : 'Upload Aadhaar'}
                 </button>
-              ) : (
-                <span className="spinner" />
-              )}
-            </>
-          )}
-        </div>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Accepted: JPG, JPEG, PNG (Max size: 5 MB)</p>
+              </div>
 
-        {zkError && <div className="alert alert-error" style={{ marginBottom: 16 }}>{zkError}</div>}
+              <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16 }}>
+                <input type="checkbox" id="consent-check" checked={consent} onChange={e => setConsent(e.target.checked)} />
+                <label htmlFor="consent-check" style={{ fontSize: '0.85rem', margin: 0 }}>I confirm that I am providing this document for artist onboarding.</label>
+              </div>
+
+              {idError && <div className="alert alert-error" style={{ marginTop: 16 }}>{idError}</div>}
+
+              <button type="submit" className="btn btn-primary" disabled={idLoading || !idFile || !consent} style={{ width: '100%', marginTop: 16 }}>
+                {idLoading ? 'Checking document...' : 'Check Document'}
+              </button>
+            </form>
+          </div>
+        ) : (
+          <div className="alert alert-success" style={{ marginBottom: '32px' }}>
+            <strong>✓ Identity document appearance check passed</strong><br />
+            <span style={{ fontSize: '0.9rem' }}>Your document was accepted for Kalasetu onboarding.</span>
+          </div>
+        )}
+
+        {/* ARTIST PROFILE FORM */}
+        <div style={{ opacity: hasVerification ? 1 : 0.5, pointerEvents: hasVerification ? 'auto' : 'none' }}>
+          <p style={{ color: 'var(--text-muted)', marginBottom: 24 }}>You only need to do this once. After your profile is created, you can upload unlimited artwork, videos, and texts.</p>
+
+          <form onSubmit={createArtistProfile}>
+            <div className="form-group" style={{ textAlign: 'center' }}>
+              <div 
+                style={{ width: 120, height: 120, borderRadius: '50%', background: 'var(--bg-secondary)', border: '2px dashed var(--border-color)', margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: 'pointer' }}
+                onClick={() => document.getElementById('profile-input').click()}
+              >
+                {profilePhotoPreview ? <img src={profilePhotoPreview} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '2rem' }}>📷</span>}
+              </div>
+              <label style={{ cursor: 'pointer', color: 'var(--accent-primary)' }} onClick={() => document.getElementById('profile-input').click()}>
+                Upload Profile Image *
+              </label>
+              <input type="file" id="profile-input" accept="image/*" onChange={handleProfilePhoto} style={{ display: 'none' }} disabled={!hasVerification} />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="new-artist-name">Artist Name *</label>
+              <input id="new-artist-name" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Your artist name" required disabled={!hasVerification} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="new-artist-username">Username</label>
+              <input id="new-artist-username" value={newUsername} onChange={e => setNewUsername(e.target.value)} placeholder="e.g. ayush_arts" disabled={!hasVerification} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="new-artist-bio">Bio</label>
+              <textarea id="new-artist-bio" value={newBio} onChange={e => setNewBio(e.target.value)} placeholder="Brief bio" rows={3} disabled={!hasVerification} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="new-artist-social">Social Link</label>
+              <input id="new-artist-social" value={newSocial} onChange={e => setNewSocial(e.target.value)} placeholder="https://..." disabled={!hasVerification} />
+            </div>
+
+            {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error}</div>}
+
+            <button type="submit" className="btn btn-primary" disabled={loading || !hasVerification} style={{ width: '100%' }}>
+              {loading && <span className="spinner" />}
+              {loading ? 'Creating Profile…' : 'Create Artist Profile'}
+            </button>
+          </form>
+        </div>
       </div>
     );
   }
+
+
 
   // ── RENDER STAGE 2 ──
   return (
     <div className="form-card" style={{ maxWidth: 700 }}>
-      {zkSuccess && (
-        <div className="alert alert-success" style={{ marginBottom: 24, textAlign: 'center' }}>
-          <strong>✓ ZK Verified Creator</strong><br />
-          <span style={{ fontSize: '0.9rem' }}>Your private credential was verified without revealing the underlying secret.</span>
-        </div>
-      )}
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid var(--border-color)' }}>
         <h2 style={{ margin: 0, fontFamily: 'var(--font-display)' }}>Create Content</h2>
@@ -445,57 +388,26 @@ export default function UploadForm() {
 
       <form onSubmit={handleContentSubmit}>
         {contentType !== 'TEXT' && (
-          <>
-            <div className="form-group">
-              <label htmlFor="file-input">
-                {contentType === 'IMAGE' && 'Artwork Compressed JPEG (for Gallery)'}
-                {contentType === 'VIDEO' && 'Video (Compressed)'}
-                {contentType === 'AUDIO' && 'Audio (Compressed)'}
-              </label>
-              <div className={`dropzone${mediaPreview ? ' has-image' : ''}`} onClick={() => document.getElementById('file-input').click()}>
-                {mediaPreview && contentType === 'IMAGE' ? <img src={mediaPreview} alt="Preview" /> : 
-                 mediaPreview && contentType === 'VIDEO' ? <video src={mediaPreview} style={{ maxWidth: '100%', maxHeight: 300 }} controls /> :
-                 mediaPreview && contentType === 'AUDIO' ? <p>🎵 Audio file selected</p> :
-                 <p>Click to select a compressed web file (up to 50 MB)</p>}
-              </div>
-              <input 
-                type="file" 
-                id="file-input" 
-                accept={contentType === 'IMAGE' ? 'image/*' : contentType === 'VIDEO' ? 'video/*' : 'audio/*'} 
-                onChange={handleMediaFile} 
-                style={{ display: 'none' }} 
-              />
+          <div className="form-group">
+            <label htmlFor="file-input">
+              {contentType === 'IMAGE' && 'Artwork Compressed JPEG (for Gallery)'}
+              {contentType === 'VIDEO' && 'Video (Compressed)'}
+              {contentType === 'AUDIO' && 'Audio (Compressed)'}
+            </label>
+            <div className={`dropzone${mediaPreview ? ' has-image' : ''}`} onClick={() => document.getElementById('file-input').click()}>
+              {mediaPreview && contentType === 'IMAGE' ? <img src={mediaPreview} alt="Preview" /> : 
+               mediaPreview && contentType === 'VIDEO' ? <video src={mediaPreview} style={{ maxWidth: '100%', maxHeight: 300 }} controls /> :
+               mediaPreview && contentType === 'AUDIO' ? <p>🎵 Audio file selected</p> :
+               <p>Click to select a compressed web file (up to 50 MB)</p>}
             </div>
-
-            <div className="form-group" style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px', border: '1px dashed var(--border-color)', marginTop: '16px', marginBottom: '24px' }}>
-              <label htmlFor="source-file-input" style={{ color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>🔒</span> Select Original Source File (For ZK Copyright Proof - Not Uploaded)
-              </label>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                Select your heavy, original file (like .psd, .ai, .raw). We will generate a unique digital fingerprint (hash) locally on your device. The heavy file never leaves your computer!
-              </p>
-              
-              <input 
-                type="file" 
-                id="source-file-input" 
-                onChange={handleSourceFile}
-                style={{ marginBottom: '12px' }}
-              />
-              
-              {isHashing && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                  <span className="spinner" style={{ width: '16px', height: '16px' }} /> Generating ZK Proof locally...
-                </div>
-              )}
-              
-              {zkProofHash && (
-                <div style={{ background: 'rgba(217, 119, 6, 0.1)', padding: '12px', borderRadius: '4px', border: '1px solid rgba(217, 119, 6, 0.3)', marginTop: '8px' }}>
-                  <strong style={{ display: 'block', fontSize: '0.85rem', color: 'var(--accent-primary)', marginBottom: '4px' }}>✓ ZK Fingerprint Generated:</strong>
-                  <code style={{ fontSize: '0.75rem', wordBreak: 'break-all', color: 'var(--text-primary)' }}>{zkProofHash}</code>
-                </div>
-              )}
-            </div>
-          </>
+            <input 
+              type="file" 
+              id="file-input" 
+              accept={contentType === 'IMAGE' ? 'image/*' : contentType === 'VIDEO' ? 'video/*' : 'audio/*'} 
+              onChange={handleMediaFile} 
+              style={{ display: 'none' }} 
+            />
+          </div>
         )}
 
         {(contentType === 'VIDEO' || contentType === 'AUDIO' || contentType === 'TEXT') && (

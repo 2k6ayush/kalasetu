@@ -9,6 +9,110 @@ const { verifyGatekeeper } = require('../services/ai/moderationService');
 const upload = require('../middleware/upload');
 
 const User = require('../models/User');
+const { protect } = require('../middleware/auth');
+const fs = require('fs');
+const path = require('path');
+const snarkjs = require('snarkjs');
+const crypto = require('crypto');
+const { callGrok } = require('../services/ai/grokProvider');
+
+// POST /api/artists/verify-identity — Aadhaar Appearance Check + ZK verification
+router.post('/verify-identity', protect, upload.single('document'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No document uploaded' });
+
+    const absPath = path.join(__dirname, '..', '..', 'uploads', req.file.filename);
+    
+    const imageBase64 = fs.readFileSync(absPath, { encoding: 'base64' });
+
+    const systemPrompt = `You are a visual document classifier. Your ONLY job is to determine if the uploaded image visually resembles an Indian Aadhaar card (e.g. general layout, government branding, typical portrait and structure).
+DO NOT perform OCR. DO NOT extract PII.
+Respond ONLY with a JSON object in this format:
+{
+  "isAadhaarAppearance": true/false,
+  "confidence": number,
+  "reason": "string"
+}`;
+
+    const response = await callGrok({ systemPrompt, userContent: "Analyze this document appearance.", imageBase64 });
+    
+    // Clean up temporary image IMMEDIATELY after Groq check
+    if (fs.existsSync(absPath)) fs.unlinkSync(absPath);
+
+    // Parse JSON
+    let aiResult;
+    try {
+      const match = response.match(/\{[\s\S]*\}/);
+      if (match) aiResult = JSON.parse(match[0]);
+      else aiResult = JSON.parse(response);
+    } catch(e) {
+      return res.status(500).json({ error: 'Failed to parse AI response' });
+    }
+
+    if (!aiResult.isAadhaarAppearance) {
+      return res.status(400).json({ verified: false, reason: 'The uploaded image does not visually match an Aadhaar document.' });
+    }
+
+    // ── Generate ZK proof representing verification ──
+    const randomValues = new Uint32Array(1);
+    crypto.webcrypto.getRandomValues(randomValues);
+    const secretVal = randomValues[0].toString();
+    const challengeNum = "12345678";
+    const scope = "999";
+    
+    const wasmPath = path.resolve(__dirname, '../../../zk/identity_js/identity.wasm');
+    const zkeyPath = path.resolve(__dirname, '../../../zk/identity_final.zkey');
+
+    if (!fs.existsSync(wasmPath)) {
+      return res.status(500).json({ error: 'ZK circuit artifact unavailable', details: 'identity.wasm was not found', path: wasmPath });
+    }
+    if (!fs.existsSync(zkeyPath)) {
+      return res.status(500).json({ error: 'ZK circuit artifact unavailable', details: 'identity_final.zkey was not found', path: zkeyPath });
+    }
+
+    const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+      { secret: secretVal, challenge: challengeNum, scope: scope },
+      wasmPath,
+      zkeyPath
+    );
+
+    // ── Run existing ZK verifier ──
+    const vkeyPath = path.resolve(__dirname, '../config/verification_key.json');
+    if (!fs.existsSync(vkeyPath)) {
+      return res.status(500).json({ error: 'ZK circuit artifact unavailable', details: 'verification_key.json was not found', path: vkeyPath });
+    }
+    const vKey = JSON.parse(fs.readFileSync(vkeyPath));
+    const isValid = await snarkjs.groth16.verify(vKey, publicSignals, proof);
+    if (!isValid) {
+      return res.status(400).json({ verified: false, reason: 'Generated ZK proof failed verification.' });
+    }
+
+    // Store only verification metadata/proof in User
+    const user = await User.findById(req.user._id);
+    user.aadhaarVerified = true;
+    user.verificationStatus = 'approved';
+    user.verificationMethod = 'AI_DOCUMENT_APPEARANCE';
+    user.verificationResult = JSON.stringify({ provider: 'groq', model: 'qwen/qwen3.8-27b' });
+    user.nullifierHash = publicSignals[0];
+    user.verifiedAt = new Date();
+    await user.save();
+
+    res.json({
+      verified: true,
+      verificationType: 'AI_DOCUMENT_APPEARANCE',
+      provider: 'groq',
+      zkProofHash: publicSignals[0]
+    });
+
+  } catch(err) {
+    if (req.file) {
+      const absPath = path.join(__dirname, '..', '..', 'uploads', req.file.filename);
+      if (fs.existsSync(absPath)) fs.unlinkSync(absPath);
+    }
+    console.error('Verify Identity Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // GET /api/artists — Wall of Fame discovery feed (only artists with approved artworks)
 router.get('/', async (req, res) => {

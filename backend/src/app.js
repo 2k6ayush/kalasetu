@@ -6,7 +6,30 @@ const { connectDB } = require('./config/db');
 const { seedDatabase } = require('../seed');
 const { startIndiaSpotlightScheduler } = require('./services/indiaSpotlightScheduler');
 
+const fs = require('fs');
+
 const app = express();
+
+// ── Validate ZK Artifacts on Startup ──
+const validateZK = () => {
+  const wasmPath = path.resolve(__dirname, '../../zk/identity_js/identity.wasm');
+  const zkeyPath = path.resolve(__dirname, '../../zk/identity_final.zkey');
+  const vkeyPath = path.resolve(__dirname, 'config/verification_key.json');
+
+  [
+    { name: 'identity.wasm', path: wasmPath },
+    { name: 'identity_final.zkey', path: zkeyPath },
+    { name: 'verification_key.json', path: vkeyPath }
+  ].forEach(artifact => {
+    if (!fs.existsSync(artifact.path)) {
+      console.error(`\n❌ [ZK ERROR] Missing required artifact: ${artifact.name}`);
+      console.error(`   Expected location: ${artifact.path}\n`);
+    } else {
+      console.log(`✓ ZK Artifact found: ${artifact.name}`);
+    }
+  });
+};
+validateZK();
 
 // ── Middleware ──────────────────────────────────────────
 app.use(cors());
