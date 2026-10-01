@@ -42,7 +42,6 @@ export default function Navbar() {
         <div className="nav-links">
           <Link href="/">Home</Link>
           <Link href="/explore-india">Explore India</Link>
-          <Link href="/gallery">Gallery</Link>
           <Link href="/wall-of-fame">Wall of Fame</Link>
           <Link href="/spotlight">Blog</Link>
           <Link href="/crafts">Archive</Link>

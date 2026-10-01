@@ -46,7 +46,6 @@ export default function Home() {
             </p>
             <div style={{ display: 'flex', gap: '16px' }}>
               <Link href="/explore-india" className="btn btn-primary">Explore India →</Link>
-              <Link href="/gallery" className="btn">Discover Artists →</Link>
             </div>
           </div>
           <div style={{ gridColumn: 'span 6', display: 'flex', justifyContent: 'flex-end' }}>
@@ -76,20 +75,15 @@ export default function Home() {
 
         {/* DISCOVERY SECTIONS */}
         <div className="editorial-grid" style={{ marginBottom: '80px', borderBottom: '1px solid var(--border-color)', paddingBottom: '80px' }}>
-          <div style={{ gridColumn: 'span 4', borderRight: '1px solid var(--border-color)', paddingRight: '24px' }}>
+          <div style={{ gridColumn: 'span 6', borderRight: '1px solid var(--border-color)', paddingRight: '24px' }}>
             <h3 style={{ fontSize: '1.25rem', marginBottom: '12px' }}>Explore India</h3>
             <p style={{ color: 'var(--text-muted)', marginBottom: '24px', fontSize: '0.9rem' }}>Discover India's places, culture and history through our interactive map.</p>
             <Link href="/explore-india" style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '500' }}>View →</Link>
           </div>
-          <div style={{ gridColumn: 'span 4', borderRight: '1px solid var(--border-color)', padding: '0 24px' }}>
+          <div style={{ gridColumn: 'span 6', paddingLeft: '24px' }}>
             <h3 style={{ fontSize: '1.25rem', marginBottom: '12px' }}>Meet Artists</h3>
             <p style={{ color: 'var(--text-muted)', marginBottom: '24px', fontSize: '0.9rem' }}>Get to know creators keeping ancient traditions alive across the country.</p>
             <Link href="/wall-of-fame" style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '500' }}>View →</Link>
-          </div>
-          <div style={{ gridColumn: 'span 4', paddingLeft: '24px' }}>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '12px' }}>Art Gallery</h3>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '24px', fontSize: '0.9rem' }}>Explore authentic, AI-verified works directly from the artists.</p>
-            <Link href="/gallery" style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '500' }}>View →</Link>
           </div>
         </div>
 
