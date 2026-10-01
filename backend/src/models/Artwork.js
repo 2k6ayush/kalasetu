@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
 
 const artworkSchema = new mongoose.Schema({
-  artist:         { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  artist:           { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  artistId:         { type: mongoose.Schema.Types.ObjectId, ref: 'Artist' },
   type:             { type: String, enum: ['IMAGE', 'VIDEO', 'AUDIO', 'TEXT'], default: 'IMAGE' },
   title:            { type: String, default: '' },
   imagePath:        { type: String, default: '' }, // acts as mediaUrl for video/audio too
