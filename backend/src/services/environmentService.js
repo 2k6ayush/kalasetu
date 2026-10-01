@@ -28,7 +28,7 @@ exports.fetchEnvironmentData = async (lat, lon) => {
   }
 
   const elevationUrl = `https://api.open-meteo.com/v1/elevation?latitude=${latitude}&longitude=${longitude}`;
-  const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m`;
+  const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto`;
 
   console.log(`[Weather] request URL: ${weatherUrl} | Elevation URL: ${elevationUrl}`);
 
@@ -62,7 +62,9 @@ exports.fetchEnvironmentData = async (lat, lon) => {
   if (weatherRes.status === 'fulfilled') {
     if (weatherRes.value.ok) {
       try {
-        const wData = await weatherRes.value.json();
+        const text = await weatherRes.value.text();
+        console.log(`[Weather] SUCCESS | URL: ${weatherUrl} | Status: ${weatherRes.value.status} | Body: ${text}`);
+        const wData = JSON.parse(text);
         if (wData && wData.current) {
           const c = wData.current;
           result.weather = {
@@ -73,19 +75,21 @@ exports.fetchEnvironmentData = async (lat, lon) => {
             weatherCode: c.weather_code,
             description: WEATHER_CODE_MAP[c.weather_code] || 'Unknown'
           };
+        } else {
+           console.log(`[Weather] Missing 'current' field in response`);
         }
       } catch (e) {
         result.errors.weather = 'Failed to parse weather data';
-        console.error(`[Weather] ${weatherUrl} / ${weatherRes.value.status} / JSON parse error`);
+        console.error(`[Weather] ERROR | URL: ${weatherUrl} | Status: ${weatherRes.value.status} | JSON parse error:`, e.message);
       }
     } else {
       const errText = await weatherRes.value.text();
       result.errors.weather = 'Weather API unavailable';
-      console.error(`[Weather] ${weatherUrl} / ${weatherRes.value.status} / ${errText}`);
+      console.error(`[Weather] ERROR | URL: ${weatherUrl} | Status: ${weatherRes.value.status} | Body: ${errText}`);
     }
   } else {
     result.errors.weather = 'Weather API fetch failed';
-    console.error(`[Weather] ${weatherUrl} / 500 / ${weatherRes.reason}`);
+    console.error(`[Weather] ERROR | URL: ${weatherUrl} | Fetch Failed:`, weatherRes.reason);
   }
 
   return result;

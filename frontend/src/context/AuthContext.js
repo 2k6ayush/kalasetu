@@ -33,42 +33,49 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('token');
       }
     } catch (err) {
-      console.error(err);
       localStorage.removeItem('token');
     }
     setLoading(false);
   };
 
   const login = async (email, password) => {
-    const res = await fetch(`${API}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      localStorage.setItem('token', data.token);
-      setUser(data);
-      router.push('/dashboard');
-      return { success: true };
+    try {
+      const res = await fetch(`${API}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('token', data.token);
+        setUser(data);
+        router.push('/dashboard');
+        return { success: true };
+      }
+      return { success: false, error: data.error };
+    } catch (err) {
+      return { success: false, error: 'Network error: Could not connect to server' };
     }
-    return { success: false, error: data.error };
   };
 
   const register = async (name, email, handle, password) => {
-    const res = await fetch(`${API}/api/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, handle, password }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      localStorage.setItem('token', data.token);
-      setUser(data);
-      router.push('/dashboard');
-      return { success: true };
+    try {
+      const res = await fetch(`${API}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, handle, password }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('token', data.token);
+        setUser(data);
+        router.push('/dashboard');
+        return { success: true };
+      }
+      return { success: false, error: data.error };
+    } catch (err) {
+      return { success: false, error: 'Network error: Could not connect to server' };
     }
-    return { success: false, error: data.error };
   };
 
   const logout = () => {
