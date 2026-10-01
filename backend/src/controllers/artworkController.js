@@ -112,8 +112,14 @@ async function listArtworks(req, res) {
 
     if (req.query.search && req.query.search.trim()) {
       const searchRegex = new RegExp(req.query.search.trim(), 'i');
+      
       const matchingArtists = await Artist.find({ name: searchRegex }).select('_id');
-      const artistIds = matchingArtists.map(a => a._id);
+      const matchingUsers = await require('../models/User').find({ name: searchRegex }).select('_id');
+      
+      const artistIds = [
+        ...matchingArtists.map(a => a._id),
+        ...matchingUsers.map(u => u._id)
+      ];
 
       const searchConditions = [
         { artistNote: searchRegex },
@@ -124,6 +130,7 @@ async function listArtworks(req, res) {
       ];
       if (artistIds.length > 0) {
         searchConditions.push({ artist: { $in: artistIds } });
+        searchConditions.push({ artistId: { $in: artistIds } }); // Support seeded data which uses artistId
       }
 
       if (filter.$or) {

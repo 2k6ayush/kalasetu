@@ -8,15 +8,23 @@ const { validateArtistInput } = require('../middleware/validate');
 const { verifyGatekeeper } = require('../services/ai/moderationService');
 const upload = require('../middleware/upload');
 
+const User = require('../models/User');
+
 // GET /api/artists — Wall of Fame discovery feed (only artists with approved artworks)
 router.get('/', async (req, res) => {
   try {
-    const artists = await Artist.aggregate([
+    // 1. Aggregation for authenticated creators (Users)
+    const users = await User.aggregate([
+      {
+        $match: {
+          aadhaarUploaded: true // Creator must be verified
+        }
+      },
       {
         $lookup: {
           from: 'artworks',
           localField: '_id',
-          foreignField: 'artistId',
+          foreignField: 'artist', // Links to actual User._id
           as: 'artworks'
         }
       },
@@ -26,7 +34,74 @@ router.get('/', async (req, res) => {
             $filter: {
               input: '$artworks',
               as: 'aw',
-              cond: { $eq: ['$$aw.moderationStatus', 'approved'] }
+              cond: { 
+                $and: [
+                  { $eq: ['$$aw.moderationStatus', 'approved'] },
+                  { $eq: ['$$aw.visibility', 'public'] } // Must be public
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        $match: {
+          'approvedArtworks.0': { $exists: true }
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          username: '$handle',
+          profilePhoto: { $literal: '' },
+          bio: { $literal: '' },
+          artworkCount: { $size: '$approvedArtworks' },
+          contentTypes: {
+            $reduce: {
+              input: '$approvedArtworks',
+              initialValue: [],
+              in: {
+                $setUnion: [
+                  '$$value',
+                  {
+                    $cond: [
+                      { $ne: ['$$this.tags.medium', ''] },
+                      ['$$this.tags.medium'],
+                      []
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          representativeArtwork: { $arrayElemAt: ['$approvedArtworks.imagePath', 0] }
+        }
+      }
+    ]);
+
+    // 2. Aggregation for Seeded Demo Artists
+    const artists = await Artist.aggregate([
+      {
+        $lookup: {
+          from: 'artworks',
+          localField: '_id',
+          foreignField: 'artistId', // Seeded data uses artistId
+          as: 'artworks'
+        }
+      },
+      {
+        $addFields: {
+          approvedArtworks: {
+            $filter: {
+              input: '$artworks',
+              as: 'aw',
+              cond: { 
+                $and: [
+                  { $eq: ['$$aw.moderationStatus', 'approved'] },
+                  { $eq: ['$$aw.visibility', 'public'] }
+                ]
+              }
             }
           }
         }
@@ -64,10 +139,12 @@ router.get('/', async (req, res) => {
           },
           representativeArtwork: { $arrayElemAt: ['$approvedArtworks.imagePath', 0] }
         }
-      },
-      { $sort: { artworkCount: -1 } }
+      }
     ]);
-    res.json(artists);
+
+    // Combine and sort by artwork count
+    const combined = [...users, ...artists].sort((a, b) => b.artworkCount - a.artworkCount);
+    res.json(combined);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
@@ -115,10 +192,36 @@ router.post('/', upload.single('profilePhoto'), async (req, res) => {
 // GET /api/artists/:id — artist profile + their artworks + existing spotlight
 router.get('/:id', async (req, res) => {
   try {
-    const artist = await Artist.findById(req.params.id);
-    if (!artist) return res.status(404).json({ error: 'Artist not found' });
-    const artworks = await Artwork.find({ artistId: artist._id, moderationStatus: 'approved' })
-      .sort({ createdAt: -1 });
+    let artist = await Artist.findById(req.params.id);
+    let artworks = [];
+    
+    if (artist) {
+      // Seeded artist
+      artworks = await Artwork.find({ 
+        artistId: artist._id, 
+        moderationStatus: 'approved',
+        visibility: 'public'
+      }).sort({ createdAt: -1 });
+    } else {
+      // Authenticated User artist
+      const user = await User.findById(req.params.id);
+      if (!user) return res.status(404).json({ error: 'Artist not found' });
+      
+      artist = {
+        _id: user._id,
+        name: user.name,
+        username: user.handle,
+        bio: 'Independent creator on Kalasetu.',
+        profilePhoto: ''
+      };
+      
+      artworks = await Artwork.find({ 
+        artist: user._id, 
+        moderationStatus: 'approved',
+        visibility: 'public'
+      }).sort({ createdAt: -1 });
+    }
+    
     const spotlight = await Spotlight.findOne({ artistId: artist._id });
     res.json({ artist, artworks, spotlight });
   } catch (err) {

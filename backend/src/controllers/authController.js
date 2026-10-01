@@ -33,6 +33,7 @@ const registerUser = async (req, res) => {
         name: user.name,
         email: user.email,
         handle: user.handle,
+        aadhaarUploaded: user.aadhaarUploaded,
         token: generateToken(user._id),
       });
     } else {
@@ -58,6 +59,7 @@ const loginUser = async (req, res) => {
         name: user.name,
         email: user.email,
         handle: user.handle,
+        aadhaarUploaded: user.aadhaarUploaded,
         token: generateToken(user._id),
       });
     } else {
@@ -82,4 +84,24 @@ const getMe = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, getMe };
+const uploadAadhaar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Aadhaar document is required' });
+    }
+    
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    user.aadhaarUploaded = true;
+    await user.save();
+
+    res.json({ success: true, message: 'Identity document added' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+module.exports = { registerUser, loginUser, getMe, uploadAadhaar };

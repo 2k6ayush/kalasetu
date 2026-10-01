@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   handle: { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  aadhaarUploaded: { type: Boolean, default: false },
 }, { timestamps: true });
 
 // Pre-save hook to hash password before saving

@@ -35,6 +35,15 @@ export default function UploadForm() {
   const [tagSaveSuccess, setTagSaveSuccess] = useState(false);
   const [tagSaveError, setTagSaveError] = useState('');
 
+  // ── Stage 1.5: Aadhaar State ──
+  const [aadhaarFile, setAadhaarFile] = useState(null);
+  const [aadhaarPreview, setAadhaarPreview] = useState(null);
+  const [aadhaarLoading, setAadhaarLoading] = useState(false);
+  const [aadhaarSuccess, setAadhaarSuccess] = useState(false);
+  const [aadhaarError, setAadhaarError] = useState('');
+
+  const hasAadhaar = user?.aadhaarUploaded || aadhaarSuccess;
+
   // Auto-login from AuthContext
   useEffect(() => {
     if (user && (user._id || user.id)) {
@@ -58,6 +67,18 @@ export default function UploadForm() {
         setMediaPreview(URL.createObjectURL(f));
       } else {
         setMediaPreview('🎵 Audio file selected');
+      }
+    }
+  }
+
+  function handleAadhaarFile(e) {
+    const f = e.target.files[0];
+    if (f) {
+      setAadhaarFile(f);
+      if (f.type.startsWith('image/')) {
+        setAadhaarPreview(URL.createObjectURL(f));
+      } else {
+        setAadhaarPreview('📄 PDF Document selected');
       }
     }
   }
@@ -91,6 +112,33 @@ export default function UploadForm() {
     }
   }
 
+  async function handleAadhaarSubmit(e) {
+    e.preventDefault();
+    if (!aadhaarFile) return;
+    setAadhaarLoading(true);
+    setAadhaarError('');
+    try {
+      const formData = new FormData();
+      formData.append('aadhaar', aadhaarFile);
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('You must be logged in to upload Aadhaar.');
+
+      const res = await fetch(`${API}/api/auth/aadhaar`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to upload Aadhaar');
+      
+      setAadhaarSuccess(true);
+    } catch (err) {
+      setAadhaarError(err.message);
+    } finally {
+      setAadhaarLoading(false);
+    }
+  }
+
   async function handleContentSubmit(e) {
     e.preventDefault();
     setError('');
@@ -108,7 +156,7 @@ export default function UploadForm() {
       formData.append('type', contentType);
       if (title) formData.append('title', title);
       if (artistNote) formData.append('artistNote', artistNote);
-      if (mediaFile) formData.append('image', mediaFile); // Multer expects field name 'image'
+      if (mediaFile) formData.append('image', mediaFile);
 
       const token = localStorage.getItem('token');
       const res = await fetch(`${API}/api/artworks`, { 
@@ -129,7 +177,6 @@ export default function UploadForm() {
         setEditMood(Array.isArray(data.tags.mood) ? data.tags.mood.join(', ') : '');
       }
 
-      // Reset form on success if not image
       if (contentType !== 'IMAGE') {
         setTitle('');
         setArtistNote('');
@@ -232,9 +279,52 @@ export default function UploadForm() {
     );
   }
 
+  // ── RENDER STAGE 1.5 (Aadhaar) ──
+  if (!hasAadhaar) {
+    return (
+      <div className="form-card" style={{ maxWidth: 500 }}>
+        <h2 style={{ marginBottom: 24, fontFamily: 'var(--font-display)', textAlign: 'center' }}>Identity Verification</h2>
+        <p style={{ color: 'var(--text-muted)', marginBottom: 24, textAlign: 'center' }}>
+          To ensure platform safety, please upload your Aadhaar document before publishing content.
+        </p>
+
+        <form onSubmit={handleAadhaarSubmit}>
+          <div className="form-group" style={{ textAlign: 'center' }}>
+            <div 
+              style={{ width: '100%', height: 160, borderRadius: 8, background: 'var(--bg-secondary)', border: '2px dashed var(--border-color)', margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: 'pointer' }}
+              onClick={() => document.getElementById('aadhaar-input').click()}
+            >
+              {aadhaarPreview ? (
+                aadhaarPreview.startsWith('http') || aadhaarPreview.startsWith('blob') ? 
+                  <img src={aadhaarPreview} alt="Aadhaar Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> :
+                  <span style={{ fontSize: '1.2rem', color: 'var(--text-primary)' }}>{aadhaarPreview}</span>
+              ) : (
+                <span style={{ fontSize: '1.2rem', color: 'var(--text-secondary)' }}>Click to select Aadhaar file</span>
+              )}
+            </div>
+            <input type="file" id="aadhaar-input" accept="image/*,.pdf" onChange={handleAadhaarFile} style={{ display: 'none' }} />
+          </div>
+
+          {aadhaarError && <div className="alert alert-error" style={{ marginBottom: 16 }}>{aadhaarError}</div>}
+
+          <button type="submit" className="btn btn-primary" disabled={aadhaarLoading || !aadhaarFile} style={{ width: '100%' }}>
+            {aadhaarLoading && <span className="spinner" />}
+            {aadhaarLoading ? 'Uploading…' : 'Upload Aadhaar'}
+          </button>
+        </form>
+      </div>
+    );
+  }
+
   // ── RENDER STAGE 2 ──
   return (
     <div className="form-card" style={{ maxWidth: 700 }}>
+      {aadhaarSuccess && (
+        <div className="alert alert-success" style={{ marginBottom: 24, textAlign: 'center' }}>
+          Identity document added
+        </div>
+      )}
+      
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid var(--border-color)' }}>
         <h2 style={{ margin: 0, fontFamily: 'var(--font-display)' }}>Create Content</h2>
         <button className="btn btn-secondary" onClick={logoutArtist} style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Switch Account</button>
