@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { registerUser, loginUser, getMe, uploadAadhaar } = require('../controllers/authController');
+const { registerUser, loginUser, getMe, getChallenge, verifyProof } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
-const upload = require('../middleware/upload');
 
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.get('/me', protect, getMe);
-router.post('/aadhaar', protect, upload.single('aadhaar'), uploadAadhaar);
+router.get('/aadhaar/challenge', protect, getChallenge);
+router.post('/aadhaar/proof', protect, verifyProof);
 
 module.exports = router;

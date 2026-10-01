@@ -196,6 +196,7 @@ Return the response using the EXACT following JSON structure:
   return callAI({ task: 'place-knowledge', systemPrompt, userContent, responseSchema });
 }
 
+
 module.exports = {
   callAI,
   verifyAIGenerated,

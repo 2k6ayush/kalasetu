@@ -6,7 +6,13 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   handle: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  aadhaarUploaded: { type: Boolean, default: false },
+  aadhaarVerified: { type: Boolean, default: false },
+  verificationStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  verificationResult: { type: String },
+  verifiedAt: { type: Date },
+  verificationMethod: { type: String },
+  nullifierHash: { type: String, unique: true, sparse: true },
+  verificationChallenge: { type: String }
 }, { timestamps: true });
 
 // Pre-save hook to hash password before saving

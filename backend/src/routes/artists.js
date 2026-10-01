@@ -17,7 +17,8 @@ router.get('/', async (req, res) => {
     const users = await User.aggregate([
       {
         $match: {
-          aadhaarUploaded: true // Creator must be verified
+          aadhaarVerified: true,
+          verificationStatus: 'approved'
         }
       },
       {

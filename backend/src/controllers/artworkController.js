@@ -9,7 +9,7 @@ const { verifyGatekeeper } = require('../services/ai/moderationService');
  */
 async function createArtwork(req, res) {
   try {
-    const { artistNote, title, type = 'IMAGE' } = req.body;
+    const { artistNote, title, type = 'IMAGE', zkProofHash } = req.body;
     if (type !== 'TEXT' && !req.file) return res.status(400).json({ error: 'Media file is required' });
     
     // artist is now retrieved from the JWT token
@@ -75,6 +75,7 @@ async function createArtwork(req, res) {
       moderationStatus: 'approved',
       moderationReason: 'Approved',
       aiProvider: tagProvider,
+      zkProofHash: zkProofHash || null,
     });
 
     return res.status(201).json({

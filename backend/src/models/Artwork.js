@@ -14,6 +14,7 @@ const artworkSchema = new mongoose.Schema({
   },
   moderationStatus: { type: String, enum: ['approved', 'rejected', 'pending'], default: 'pending' },
   moderationReason: { type: String, default: '' },
+  zkProofHash:      { type: String, default: null },
   aiProvider:       { type: String, default: '' },
   visibility:       { type: String, enum: ['public', 'private'], default: 'public' },
   createdAt:        { type: Date, default: Date.now },

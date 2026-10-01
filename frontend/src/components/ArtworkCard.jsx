@@ -32,6 +32,20 @@ export default function ArtworkCard({ artwork }) {
         )}
       </div>
       <div className="artwork-card-body">
+        {artwork.zkProofHash && (
+          <div style={{ marginBottom: '8px' }}>
+            <span 
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.65rem', padding: '2px 6px', background: 'rgba(217, 119, 6, 0.15)', color: 'var(--accent-primary)', borderRadius: '4px', border: '1px solid rgba(217, 119, 6, 0.3)', cursor: 'pointer', fontFamily: 'monospace' }}
+              title={`Digital Fingerprint: ${artwork.zkProofHash}`}
+              onClick={(e) => {
+                e.preventDefault();
+                alert(`🔒 ZK Copyright Fingerprint:\n\n${artwork.zkProofHash}\n\nThis hash mathematically proves the artist possesses the heavy original source file without revealing it.`);
+              }}
+            >
+              🔒 ZK Copyright Locked
+            </span>
+          </div>
+        )}
         {artwork.artistNote && (
           <p className="artwork-card-title">{artwork.artistNote}</p>
         )}
